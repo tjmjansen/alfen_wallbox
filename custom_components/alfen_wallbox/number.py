@@ -417,7 +417,21 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         api_param="2168_0",
         round_digits=None
     ),
-
+    AlfenNumberDescription(
+        key="main_external_max_current_socket_1",
+        name="Power Connector External Max Current Socket 1",
+        state=None,
+        icon="mdi:current-ac",
+        assumed_state=False,
+        device_class=NumberDeviceClass.CURRENT,
+        native_min_value=0,
+        native_max_value=16,
+        native_step=1,
+        custom_mode=None,
+        unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        api_param="212A_0",
+        round_digits=None,
+    ),
 )
 
 ALFEN_NUMBER_DUAL_SOCKET_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
