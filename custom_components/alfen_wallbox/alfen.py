@@ -87,6 +87,7 @@ class AlfenDevice:
         self.latest_tag = None
         self.transaction_offset = 0
         self.transaction_counter = 0
+        self.initilize = False
 
         # set next update time as current time
         self.next_update = datetime.datetime.now()
@@ -171,9 +172,11 @@ class AlfenDevice:
             try:
                 self.updating = True
                 await self._get_all_properties_value()
-                if self.transaction_counter == 0:
+
+                if self.transaction_counter == 0 and not self.initilize:
                     await self._get_transaction()
-                self.transaction_counter += 1
+                if not self.initilize:
+                    self.transaction_counter += 1
 
             finally:
                 self.updating = False
@@ -339,8 +342,14 @@ class AlfenDevice:
             #_LOGGER.debug(response)
             # split this text into lines with \n
             lines = str(response).splitlines()
+
+            # if the lines are empty, break the loop
+            if not lines or not response:
+                transactionLoop = False
+                break
+
             for line in lines:
-                if line is None or response is None:
+                if line is None:
                     transactionLoop = False
                     break
 
@@ -415,6 +424,10 @@ class AlfenDevice:
 
                     elif 'dto' in line:
                         continue
+                    elif '0_Empty' in line:
+                        # break if the transaction is empty
+                        transactionLoop = False
+                        break
                     else:
                         _LOGGER.debug(f"Unknown line: {line}")
                         continue
