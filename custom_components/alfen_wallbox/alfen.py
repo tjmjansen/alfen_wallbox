@@ -342,8 +342,14 @@ class AlfenDevice:
             #_LOGGER.debug(response)
             # split this text into lines with \n
             lines = str(response).splitlines()
+
+            # if the lines are empty, break the loop
+            if not lines or not response:
+                transactionLoop = False
+                break
+
             for line in lines:
-                if line is None or response is None:
+                if line is None:
                     transactionLoop = False
                     break
 
@@ -418,6 +424,10 @@ class AlfenDevice:
 
                     elif 'dto' in line:
                         continue
+                    elif '0_Empty' in line:
+                        # break if the transaction is empty
+                        transactionLoop = False
+                        break
                     else:
                         _LOGGER.debug(f"Unknown line: {line}")
                         continue
