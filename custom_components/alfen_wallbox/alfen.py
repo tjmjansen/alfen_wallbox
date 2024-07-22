@@ -423,6 +423,7 @@ class AlfenDevice:
                         #_LOGGER.debug(self.latest_tag)
 
                     elif 'dto' in line:
+                        offset = offset +1
                         continue
                     elif '0_Empty' in line:
                         # break if the transaction is empty
@@ -430,9 +431,8 @@ class AlfenDevice:
                         break
                     else:
                         _LOGGER.debug(f"Unknown line: {line}")
+                        offset = offset +1
                         continue
-
-
                 except IndexError:
                     break
 
