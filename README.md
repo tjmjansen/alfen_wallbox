@@ -76,14 +76,14 @@ data:
 ## Installation
 
 ### Install using HACS (recommended)
-If you do not have HACS installed yet visit https://hacs.xyz for installation instructions.
-In HACS go to the Integrations section hit the big + at the bottom right and search for **Alfen Wallbox**.
+If you do not have HACS installed yet visit https://hacs.xyz for installation instructions.\
+In HACS, go to the Integrations section and add the custom repository via the 3 dot menu on the top right. Enter ```https://github.com/leeyuentuen/alfen_wallbox``` in the Repository field, choose the ```Integration``` category, then click add.\
+Hit the big + at the bottom right and search for **Alfen Wallbox**. Click it, then click the download button.\
 
 ### Install manually
 Clone or copy this repository and copy the folder 'custom_components/alfen_wallbox' into '<homeassistant config>/custom_components/alfen_wallbox'
 
 ## Configuration
-
 Once installed the Alfen Wallbox integration can be configured via the Home Assistant integration interface 
 where you can enter the IP address of the device.
 
