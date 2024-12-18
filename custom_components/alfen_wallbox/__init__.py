@@ -1,25 +1,18 @@
 """Alfen Wallbox integration."""
 
-import asyncio
 import logging
+from typing import Any
 
-from aiohttp import ClientConnectionError
-from async_timeout import timeout
+from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PASSWORD,
+                                 CONF_SCAN_INTERVAL, CONF_TIMEOUT,
+                                 CONF_USERNAME, Platform)
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry
 
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_NAME,
-    CONF_PASSWORD,
-    CONF_SCAN_INTERVAL,
-    CONF_USERNAME,
-    Platform,
-)
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import ConfigEntryNotReady
-
-from .alfen import AlfenDevice
-from .const import DOMAIN, TIMEOUT
+from .const import (CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL,
+                    DEFAULT_TIMEOUT)
+from .coordinator import (AlfenConfigEntry, AlfenCoordinator,
+                          options_update_listener)
 
 PLATFORMS = [
     Platform.SENSOR,
@@ -28,72 +21,78 @@ PLATFORMS = [
     Platform.SWITCH,
     Platform.NUMBER,
     Platform.BUTTON,
-    Platform.TEXT
+    Platform.TEXT,
 ]
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
-    """Set up the Alfen Wallbox component."""
-    hass.data.setdefault(DOMAIN, {})
+async def async_migrate_entry(
+    hass: HomeAssistant, config_entry: AlfenConfigEntry
+) -> bool:
+    """Migrate old entry."""
+    _LOGGER.debug("Migrating from version %s", config_entry.version)
+
+    if config_entry.version == 1:
+        scan_interval = config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+        options = {
+            CONF_SCAN_INTERVAL: scan_interval,
+            CONF_TIMEOUT: DEFAULT_TIMEOUT,
+            CONF_TRANSACTION_DATA: False,
+        }
+        data = {
+            CONF_HOST: config_entry.data.get(CONF_HOST),
+            CONF_NAME: config_entry.data.get(CONF_NAME),
+            CONF_USERNAME: config_entry.data.get(CONF_USERNAME),
+            CONF_PASSWORD: config_entry.data.get(CONF_PASSWORD),
+        }
+
+        hass.config_entries.async_update_entry(
+            config_entry,
+            version=2,
+            data=data,
+            options=options,
+        )
+
+        _LOGGER.debug("Migration to version %s successful", config_entry.version)
+
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
-    """Set up Alfen Wallbox from a config entry."""
-    conf = config_entry.data
-
-    # if CONF_SCAN_INTERVAL not in conf, then we give 5
-    device = await alfen_setup(
-        hass, conf[CONF_HOST], conf[CONF_NAME], conf[CONF_USERNAME], conf[CONF_PASSWORD], conf[CONF_SCAN_INTERVAL] if CONF_SCAN_INTERVAL in conf else 5
+async def async_setup_entry(
+    hass: HomeAssistant, config_entry: AlfenConfigEntry
+) -> bool:
+    """Set up Alfen from a config entry."""
+    await entity_registry.async_migrate_entries(
+        hass, config_entry.entry_id, async_migrate_entity_entry
     )
-    if not device:
-        return False
 
-    device.initilize = True
-    await device.async_update()
-    device.get_number_of_socket()
-    device.get_licenses()
+    coordinator = AlfenCoordinator(hass, config_entry)
+    await coordinator.async_config_entry_first_refresh()
 
-
-    hass.data.setdefault(DOMAIN, {})
-    hass.data[DOMAIN][config_entry.entry_id] = device
-
+    config_entry.runtime_data = coordinator
     await hass.config_entries.async_forward_entry_setups(config_entry, PLATFORMS)
-    device.initilize = False
+
+    config_entry.async_on_unload(
+        config_entry.add_update_listener(options_update_listener)
+    )
     return True
 
 
-async def async_unload_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+async def async_unload_entry(
+    hass: HomeAssistant, config_entry: AlfenConfigEntry
+) -> bool:
     """Unload a config entry."""
     _LOGGER.debug("async_unload_entry: %s", config_entry)
 
-    unload_ok = await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
-
-    hass.data[DOMAIN].pop(config_entry.entry_id)
-
-    if not hass.data[DOMAIN]:
-        hass.data.pop(DOMAIN)
-
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
 
-async def alfen_setup(hass: HomeAssistant, host: str, name: str, username: str, password: str, scan_interval:int) -> AlfenDevice | None:
-    """Create a Alfen instance only once."""
+@callback
+def async_migrate_entity_entry(
+    entity_entry: entity_registry.RegistryEntry,
+) -> dict[str, Any] | None:
+    """Migrate a Alfen entity entry."""
 
-    try:
-        with timeout(TIMEOUT):
-            device = AlfenDevice(hass, host, name, username, password, scan_interval)
-            await device.init()
-    except asyncio.TimeoutError:
-        _LOGGER.debug("Connection to %s timed out", host)
-        raise ConfigEntryNotReady
-    except ClientConnectionError as e:
-        _LOGGER.debug("ClientConnectionError to %s %s", host, str(e))
-        raise ConfigEntryNotReady
-    except Exception as e:  # pylint: disable=broad-except
-        _LOGGER.error("Unexpected error creating device %s %s", host, str(e))
-        return None
-
-    return device
+    # No migration needed
+    return None

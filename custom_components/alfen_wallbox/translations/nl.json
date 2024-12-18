@@ -1,0 +1,27 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "Configureer Alfen Wallbox",
+                "description": "Configureer de Alfen Wallbox.",
+                "data": {
+                    "host": "Host",
+                    "name": "Naam",
+                    "username": "Gebruikersnaam",
+                    "password": "Wachtwoord"
+                },
+                "options": {
+                    "scan_interval": "Vernieuw interval",
+                    "timeout": "Timeout",
+                    "get_transaction_data": "Haal transactiedata op"
+                }
+            }
+        },
+        "abort": {
+            "device_timeout": "Timeout connecting to the device.",
+            "device_fail": "Unexpected error creating device.",
+            "already_configured": "Device is already configured.",
+            "invalid_current_limit": "Invalid current limit (1 - 32A)."
+        }
+    }
+}

@@ -1,50 +1,22 @@
 """Alfen Wallbox API."""
+
 import datetime
 import json
 import logging
 import ssl
 
 from aiohttp import ClientResponse
-from urllib3 import disable_warnings
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from urllib3 import disable_warnings
 
-from .const import (
-    ALFEN_PRODUCT_MAP,
-    CAT,
-    CAT_COMM,
-    CAT_DISPLAY,
-    CAT_GENERIC,
-    CAT_GENERIC2,
-    CAT_MBUS_TCP,
-    CAT_METER1,
-    CAT_METER2,
-    CAT_METER4,
-    CAT_OCPP,
-    CAT_STATES,
-    CAT_TEMP,
-    CMD,
-    DISPLAY_NAME_VALUE,
-    DOMAIN,
-    ID,
-    INFO,
-    LICENSES,
-    LOGIN,
-    LOGOUT,
-    METHOD_GET,
-    METHOD_POST,
-    OFFSET,
-    PARAM_COMMAND,
-    PARAM_DISPLAY_NAME,
-    PARAM_PASSWORD,
-    PARAM_USERNAME,
-    PROP,
-    PROPERTIES,
-    TIMEOUT,
-    TOTAL,
-    VALUE,
-)
+from .const import (ALFEN_PRODUCT_MAP, CAT, CAT_COMM, CAT_DISPLAY, CAT_GENERIC,
+                    CAT_GENERIC2, CAT_MBUS_TCP, CAT_METER1, CAT_METER2,
+                    CAT_METER4, CAT_OCPP, CAT_STATES, CAT_TEMP, CMD,
+                    DEFAULT_TIMEOUT, DISPLAY_NAME_VALUE, DOMAIN, ID, INFO,
+                    LICENSES, LOGIN, LOGOUT, METHOD_GET, METHOD_POST, OFFSET,
+                    PARAM_COMMAND, PARAM_DISPLAY_NAME, PARAM_PASSWORD,
+                    PARAM_USERNAME, PROP, PROPERTIES, TOTAL, VALUE)
 
 POST_HEADER_JSON = {"Content-Type": "application/json"}
 
@@ -54,13 +26,16 @@ _LOGGER = logging.getLogger(__name__)
 class AlfenDevice:
     """Alfen Device."""
 
-    def __init__(self,
-                 hass: HomeAssistant,
-                 host: str,
-                 name: str,
-                 username: str,
-                 password: str,
-                 scan_interval:int) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        host: str,
+        name: str,
+        username: str,
+        password: str,
+        scan_interval: int,
+        get_transactions: bool,
+    ) -> None:
         """Init."""
 
         self.host = host
@@ -68,7 +43,6 @@ class AlfenDevice:
         self._status = None
         self._session = async_get_clientsession(hass, verify_ssl=False)
         self._session.connector._keepalive_timeout = 2 * scan_interval
-        self.scan_interval = scan_interval
         self.username = username
         self.info = None
         self.id = None
@@ -88,9 +62,8 @@ class AlfenDevice:
         self.transaction_offset = 0
         self.transaction_counter = 0
         self.initilize = False
+        self.get_transactions = get_transactions
 
-        # set next update time as current time
-        self.next_update = datetime.datetime.now()
         disable_warnings()
 
         # Default ciphers needed as of python 3.10
@@ -110,14 +83,14 @@ class AlfenDevice:
     def get_number_of_socket(self):
         """Get number of socket from the properties."""
         for prop in self.properties:
-            if prop[ID] == '205E_0':
+            if prop[ID] == "205E_0":
                 self.number_socket = int(prop[VALUE])
                 break
 
     def get_licenses(self):
         """Get licenses from the properties."""
         for prop in self.properties:
-            if prop[ID] == '21A2_0':
+            if prop[ID] == "21A2_0":
                 for key, value in LICENSES.items():
                     if int(prop[VALUE]) & int(value):
                         self.licenses.append(key)
@@ -125,9 +98,7 @@ class AlfenDevice:
 
     async def get_info(self):
         """Get info from the API."""
-        response = await self._session.get(
-            url=self.__get_url(INFO), ssl=self.ssl
-        )
+        response = await self._session.get(url=self.__get_url(INFO), ssl=self.ssl)
         _LOGGER.debug(f"Response {response}")
         if response.status != 200:
             _LOGGER.debug("Info API not available, use generic info")
@@ -163,41 +134,34 @@ class AlfenDevice:
     async def async_update(self):
         """Update the device properties."""
 
-        # add next update time
-        if self.next_update > datetime.datetime.now():
-            _LOGGER.debug(f"Next update {self.next_update}")
-            return
-
         if not self.keepLogout and not self.wait and not self.updating:
             try:
                 self.updating = True
                 await self._get_all_properties_value()
 
-                if self.transaction_counter == 0 and not self.initilize:
-                    await self._get_transaction()
-                if not self.initilize:
-                    self.transaction_counter += 1
+                if self.get_transactions:
+                    if self.transaction_counter == 0 and not self.initilize:
+                        await self._get_transaction()
+                    if not self.initilize:
+                        self.transaction_counter += 1
 
             finally:
                 self.updating = False
 
-            self.next_update = datetime.datetime.now() + datetime.timedelta(seconds=self.scan_interval)
-            # if the transaction counter is 50, reset it (transaction is only update every 30 sec, so it's about 30 times
-            # transaction only update every 15min, so we update very 10minutes
-            if self.transaction_counter >= (60 / self.scan_interval) * 10:
-                self.transaction_counter = 0
-
-    async def _post(self, cmd, payload=None, allowed_login=True) -> ClientResponse | None:
+    async def _post(
+        self, cmd, payload=None, allowed_login=True
+    ) -> ClientResponse | None:
         """Send a POST request to the API."""
         try:
             self.wait = True
             _LOGGER.debug("Send Post Request")
             async with self._session.post(
-                    url=self.__get_url(cmd),
-                    json=payload,
-                    headers=POST_HEADER_JSON,
-                    timeout=TIMEOUT,
-                    ssl=self.ssl) as response:
+                url=self.__get_url(cmd),
+                json=payload,
+                headers=POST_HEADER_JSON,
+                timeout=DEFAULT_TIMEOUT,
+                ssl=self.ssl,
+            ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST with login")
                     await self.login()
@@ -206,7 +170,7 @@ class AlfenDevice:
                 return response
         except json.JSONDecodeError as e:
             # skip tailing comma error from alfen
-            _LOGGER.debug('trailing comma is not allowed')
+            _LOGGER.debug("trailing comma is not allowed")
             if e.msg == "trailing comma is not allowed":
                 return None
 
@@ -219,10 +183,14 @@ class AlfenDevice:
             self.wait = False
         return None
 
-    async def _get(self, url, allowed_login=True, json_decode=True) -> ClientResponse | None:
+    async def _get(
+        self, url, allowed_login=True, json_decode=True
+    ) -> ClientResponse | None:
         """Send a GET request to the API."""
         try:
-            async with self._session.get(url, timeout=TIMEOUT, ssl=self.ssl) as response:
+            async with self._session.get(
+                url, timeout=DEFAULT_TIMEOUT, ssl=self.ssl
+            ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("GET with login")
                     await self.login()
@@ -244,8 +212,14 @@ class AlfenDevice:
     async def login(self):
         """Login to the API."""
         try:
-            response = await self._post(cmd=LOGIN, payload={
-                PARAM_USERNAME: self.username, PARAM_PASSWORD: self.password, PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE})
+            response = await self._post(
+                cmd=LOGIN,
+                payload={
+                    PARAM_USERNAME: self.username,
+                    PARAM_PASSWORD: self.password,
+                    PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE,
+                },
+            )
             _LOGGER.debug(f"Login response {response}")
         except Exception as e:  # pylint: disable=broad-except
             _LOGGER.error("Unexpected error on LOGIN %s", str(e))
@@ -260,16 +234,19 @@ class AlfenDevice:
             _LOGGER.error("Unexpected error on LOGOUT %s", str(e))
             return None
 
-    async def _update_value(self, api_param, value, allowed_login=True) -> ClientResponse | None:
+    async def _update_value(
+        self, api_param, value, allowed_login=True
+    ) -> ClientResponse | None:
         """Update a value on the API."""
         try:
             self.wait = True
             async with self._session.post(
-                    url=self.__get_url(PROP),
-                    json={api_param: {ID: api_param, VALUE: str(value)}},
-                    headers=POST_HEADER_JSON,
-                    timeout=TIMEOUT,
-                    ssl=self.ssl) as response:
+                url=self.__get_url(PROP),
+                json={api_param: {ID: api_param, VALUE: str(value)}},
+                headers=POST_HEADER_JSON,
+                timeout=DEFAULT_TIMEOUT,
+                ssl=self.ssl,
+            ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST(Update) with login")
                     await self.login()
@@ -301,11 +278,23 @@ class AlfenDevice:
         """Get all properties from the API."""
         _LOGGER.debug(f"Get properties")
         properties = []
-        for cat in (CAT_GENERIC, CAT_GENERIC2, CAT_METER1, CAT_STATES, CAT_TEMP, CAT_OCPP, CAT_METER4, CAT_MBUS_TCP, CAT_COMM, CAT_DISPLAY, CAT_METER2):
+        for cat in (
+            CAT_GENERIC,
+            CAT_GENERIC2,
+            CAT_METER1,
+            CAT_STATES,
+            CAT_TEMP,
+            CAT_OCPP,
+            CAT_METER4,
+            CAT_MBUS_TCP,
+            CAT_COMM,
+            CAT_DISPLAY,
+            CAT_METER2,
+        ):
             nextRequest = True
             offset = 0
             attempt = 0
-            while (nextRequest):
+            while nextRequest:
                 attempt += 1
                 cmd = f"{PROP}?{CAT}={cat}&{OFFSET}={offset}"
                 response = await self._get(url=self.__get_url(cmd))
@@ -314,8 +303,7 @@ class AlfenDevice:
                 if response is not None:
                     attempt = 0
                     properties += response[PROPERTIES]
-                    nextRequest = response[TOTAL] > (
-                        offset + len(response[PROPERTIES]))
+                    nextRequest = response[TOTAL] > (offset + len(response[PROPERTIES]))
                     offset += len(response[PROPERTIES])
                 elif attempt >= 3:
                     # This only possible in case of series of timeouts or unknown exceptions in self._get()
@@ -338,8 +326,11 @@ class AlfenDevice:
         transactionLoop = True
         counter = 0
         while transactionLoop:
-            response = await self._get(url=self.__get_url("transactions?offset="+ str(offset)), json_decode=False)
-            #_LOGGER.debug(response)
+            response = await self._get(
+                url=self.__get_url("transactions?offset=" + str(offset)),
+                json_decode=False,
+            )
+            # _LOGGER.debug(response)
             # split this text into lines with \n
             lines = str(response).splitlines()
 
@@ -355,61 +346,72 @@ class AlfenDevice:
 
                 try:
                     if "version" in line:
-                        #_LOGGER.debug("Version line" + line)
+                        # _LOGGER.debug("Version line" + line)
                         line = line.split(":2,", 2)[1]
 
                     splitline = line.split(" ")
 
                     if "txstart" in line:
-                        #_LOGGER.debug("start line: " + line)
+                        # _LOGGER.debug("start line: " + line)
                         tid = line.split(":", 2)[0].split("_", 2)[0]
 
                         tid = splitline[0].split("_", 2)[0]
                         socket = splitline[3] + " " + splitline[4].split(",", 2)[0]
 
                         date = splitline[5] + " " + splitline[6]
-                        kWh = splitline[7].split('kWh', 2)[0]
-                        tag= splitline[8]
+                        kWh = splitline[7].split("kWh", 2)[0]
+                        tag = splitline[8]
 
                         # 3: transaction id
                         # 9: 1
                         # 10: y
 
-
                         if self.latest_tag is None:
                             self.latest_tag = {}
-                        self.latest_tag[socket,"start", "tag"] = tag
-                        self.latest_tag[socket,"start","date"] = date
-                        self.latest_tag[socket,"start","kWh"] = kWh
+                        self.latest_tag[socket, "start", "tag"] = tag
+                        self.latest_tag[socket, "start", "date"] = date
+                        self.latest_tag[socket, "start", "kWh"] = kWh
 
                     elif "txstop" in line:
-                        #_LOGGER.debug("stop line: " + line)
+                        # _LOGGER.debug("stop line: " + line)
 
                         tid = splitline[0].split("_", 2)[0]
                         socket = splitline[3] + " " + splitline[4].split(",", 2)[0]
 
                         date = splitline[5] + " " + splitline[6]
-                        kWh = splitline[7].split('kWh', 2)[0]
-                        tag= splitline[8]
+                        kWh = splitline[7].split("kWh", 2)[0]
+                        tag = splitline[8]
 
                         # 2: transaction id
                         # 9: y
 
                         if self.latest_tag is None:
                             self.latest_tag = {}
-                        self.latest_tag[socket,"stop","tag"] = tag
-                        self.latest_tag[socket,"stop","date"] = date
-                        self.latest_tag[socket,"stop","kWh"] = kWh
+                        self.latest_tag[socket, "stop", "tag"] = tag
+                        self.latest_tag[socket, "stop", "date"] = date
+                        self.latest_tag[socket, "stop", "kWh"] = kWh
 
                         # store the latest start kwh and date
                         for key in list(self.latest_tag):
-                            if key[0] == socket and key[1] ==  "start" and key[2] == "kWh":
-                                self.latest_tag[socket,"last_start","kWh"] = self.latest_tag[socket,"start","kWh"]
-                            if key[0] == socket and key[1] ==  "start" and key[2] == "date":
-                                self.latest_tag[socket,"last_start","date"] = self.latest_tag[socket,"start","date"]
+                            if (
+                                key[0] == socket
+                                and key[1] == "start"
+                                and key[2] == "kWh"
+                            ):
+                                self.latest_tag[socket, "last_start", "kWh"] = (
+                                    self.latest_tag[socket, "start", "kWh"]
+                                )
+                            if (
+                                key[0] == socket
+                                and key[1] == "start"
+                                and key[2] == "date"
+                            ):
+                                self.latest_tag[socket, "last_start", "date"] = (
+                                    self.latest_tag[socket, "start", "date"]
+                                )
 
                     elif "mv" in line:
-                        #_LOGGER.debug("mv line: " + line)
+                        # _LOGGER.debug("mv line: " + line)
                         tid = splitline[0].split("_", 2)[0]
                         socket = splitline[1] + " " + splitline[2].split(",", 2)[0]
                         date = splitline[3] + " " + splitline[4]
@@ -417,25 +419,24 @@ class AlfenDevice:
 
                         if self.latest_tag is None:
                             self.latest_tag = {}
-                        self.latest_tag[socket,"mv","date"] = date
-                        self.latest_tag[socket,"mv","kWh"] = kWh
+                        self.latest_tag[socket, "mv", "date"] = date
+                        self.latest_tag[socket, "mv", "kWh"] = kWh
 
-                        #_LOGGER.debug(self.latest_tag)
+                        # _LOGGER.debug(self.latest_tag)
 
-                    elif 'dto' in line:
-                        offset = offset +1
+                    elif "dto" in line:
+                        offset = offset + 1
                         continue
-                    elif '0_Empty' in line:
+                    elif "0_Empty" in line:
                         # break if the transaction is empty
                         transactionLoop = False
                         break
                     else:
                         _LOGGER.debug(f"Unknown line: {line}")
-                        offset = offset +1
+                        offset = offset + 1
                         continue
                 except IndexError:
                     break
-
 
                 # check if tid is integer
                 try:
@@ -457,9 +458,9 @@ class AlfenDevice:
                 if line == lines[-1]:
                     break
 
-
-
-    async def async_request(self, method: str, cmd: str, json_data=None) -> ClientResponse | None:
+    async def async_request(
+        self, method: str, cmd: str, json_data=None
+    ) -> ClientResponse | None:
         """Send a request to the API."""
         try:
             return await self.request(method, cmd, json_data)
@@ -513,7 +514,7 @@ class AlfenDevice:
     async def set_current_phase(self, phase) -> None:
         """Set the current phase."""
         _LOGGER.debug(f"Set current phase {phase}")
-        if phase not in ('L1', 'L2', 'L3'):
+        if phase not in ("L1", "L2", "L3"):
             return None
         await self.set_value("2069_0", phase)
 
@@ -547,6 +548,7 @@ class AlfenDevice:
 
 class AlfenDeviceInfo:
     """Representation of a Alfen device info."""
+
     def __init__(self, response) -> None:
         """Initialize the Alfen device info."""
         self.identity = response["Identity"]

@@ -1,4 +1,5 @@
 """Constants for the Alfen Wallbox integration."""
+
 DOMAIN = "alfen_wallbox"
 
 ID = "id"
@@ -40,8 +41,10 @@ CAT_METER2 = "meter2"
 
 COMMAND_REBOOT = "reboot"
 
-INTERVAL = 5
-TIMEOUT = 20
+CONF_TRANSACTION_DATA = "get_transaction_data"
+
+DEFAULT_SCAN_INTERVAL = 5
+DEFAULT_TIMEOUT = 20
 
 SERVICE_REBOOT_WALLBOX = "reboot_wallbox"
 SERVICE_SET_CURRENT_LIMIT = "set_current_limit"
@@ -124,5 +127,5 @@ LICENSES = {
     LICENSE_PAYMENT_GIROE: 1048576,
     LICENSE_PAYMENT_QRCODE: 131072,
     LICENSE_EXPOSE_SMARTMETERDATA: 16777216,
-    LICENSE_OBJECTID: 2147483648
+    LICENSE_OBJECTID: 2147483648,
 }

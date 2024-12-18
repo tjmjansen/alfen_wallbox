@@ -1,27 +1,20 @@
-"""Button entity for Alfen EV chargers."""""
-from dataclasses import dataclass
+"""Button entity for Alfen EV chargers.""" ""
+
 import logging
+from dataclasses import dataclass
 from typing import Final
 
-from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
+from homeassistant.components.button import (ButtonEntity,
+                                             ButtonEntityDescription)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
-from .const import (
-    CMD,
-    COMMAND_REBOOT,
-    DISPLAY_NAME_VALUE,
-    LOGIN,
-    LOGOUT,
-    METHOD_POST,
-    PARAM_COMMAND,
-    PARAM_DISPLAY_NAME,
-    PARAM_PASSWORD,
-    PARAM_USERNAME,
-)
+from .const import (CMD, COMMAND_REBOOT, DISPLAY_NAME_VALUE, LOGIN, LOGOUT,
+                    METHOD_POST, PARAM_COMMAND, PARAM_DISPLAY_NAME,
+                    PARAM_PASSWORD, PARAM_USERNAME)
+from .coordinator import AlfenConfigEntry, AlfenCoordinator
 from .entity import AlfenEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -54,34 +47,33 @@ ALFEN_BUTTON_TYPES: Final[tuple[AlfenButtonDescription, ...]] = (
         name="HTTPS API Logout",
         method=METHOD_POST,
         url_action=LOGOUT,
-        json_data=None
+        json_data=None,
     ),
     AlfenButtonDescription(
         key="auth_login",
         name="HTTPS API Login",
         method=METHOD_POST,
         url_action=LOGIN,
-        json_data=None
+        json_data=None,
     ),
     AlfenButtonDescription(
         key="wallbox_force_update",
         name="Force Update",
         method=METHOD_POST,
-        url_action='Force Update',
-        json_data=None
+        url_action="Force Update",
+        json_data=None,
     ),
 )
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AlfenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Alfen switch entities from a config entry."""
-    device = hass.data[ALFEN_DOMAIN][entry.entry_id]
-    buttons = [AlfenButton(device, description)
-               for description in ALFEN_BUTTON_TYPES]
+
+    buttons = [AlfenButton(entry, description) for description in ALFEN_BUTTON_TYPES]
 
     async_add_entities(buttons)
 
@@ -93,38 +85,40 @@ class AlfenButton(AlfenEntity, ButtonEntity):
 
     def __init__(
         self,
-        device: AlfenDevice,
+        entry: AlfenConfigEntry,
         description: AlfenButtonDescription,
     ) -> None:
         """Initialize the Alfen button entity."""
-        super().__init__(device)
-        self._device = device
-        self._attr_name = f"{device.name} {description.name}"
-        self._attr_unique_id = f"{device.id}-{description.key}"
+        super().__init__(entry)
+        self._attr_name = f"{self.coordinator.device.name} {description.name}"
+        self._attr_unique_id = f"{self.coordinator.device.id}-{description.key}"
         self.entity_description = description
 
     async def async_press(self) -> None:
         """Press the button."""
         if self.entity_description.url_action == "Force Update":
-            await self._device.async_update()
+            await self.coordinator.device.async_update()
             return
-        elif self.entity_description.url_action == LOGIN:
-            resp = await self._device.async_request(
+
+        if self.entity_description.url_action == LOGIN:
+            resp = await self.coordinator.device.async_request(
                 method=self.entity_description.method,
                 cmd=self.entity_description.url_action,
-                json_data={PARAM_USERNAME: self._device.username,
-                           PARAM_PASSWORD: self._device.password,
-                           PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE}
+                json_data={
+                    PARAM_USERNAME: self.coordinator.device.username,
+                    PARAM_PASSWORD: self.coordinator.device.password,
+                    PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE,
+                },
             )
             if resp and resp.status == 200:
-                self._device.keepLogout = False
+                self.coordinator.device.keepLogout = False
                 return
         else:
-            resp = await self._device.async_request(
+            resp = await self.coordinator.device.async_request(
                 method=self.entity_description.method,
                 cmd=self.entity_description.url_action,
-                json_data=self.entity_description.json_data
+                json_data=self.entity_description.json_data,
             )
             if resp and resp.status == 200:
-                self._device.keepLogout = True
+                self.coordinator.device.keepLogout = True
                 return

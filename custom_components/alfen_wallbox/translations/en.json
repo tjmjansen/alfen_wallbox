@@ -8,8 +8,12 @@
           "host": "Host",
           "name": "Friendly name",
           "username": "Username",
-          "password": "Password",
-          "scan_interval": "Scan interval"
+          "password": "Password"
+        },
+        "options": {
+          "scan_interval": "Scan interval",
+          "timeout": "Timeout",
+          "get_transaction_data": "Get transaction data"
         }
       }
     },
