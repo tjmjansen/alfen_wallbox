@@ -1,19 +1,21 @@
-import logging
+"""Support for Alfen Eve Single Proline Wallbox."""
+
 from dataclasses import dataclass
 from typing import Any, Final
 
-from homeassistant.components.switch import (SwitchEntity,
-                                             SwitchEntityDescription)
+from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (ID, SERVICE_DISABLE_PHASE_SWITCHING,
-                    SERVICE_ENABLE_PHASE_SWITCHING, VALUE)
+from .const import (
+    ID,
+    SERVICE_DISABLE_PHASE_SWITCHING,
+    SERVICE_ENABLE_PHASE_SWITCHING,
+    VALUE,
+)
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass

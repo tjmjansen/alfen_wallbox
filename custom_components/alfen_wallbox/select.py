@@ -1,25 +1,23 @@
 """Alfen Wallbox Select Entities."""
 
-import logging
 from dataclasses import dataclass
 from typing import Final
 
 import voluptuous as vol
-from homeassistant.components.select import (SelectEntity,
-                                             SelectEntityDescription)
+from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
-from .const import (ID, SERVICE_DISABLE_RFID_AUTHORIZATION_MODE,
-                    SERVICE_ENABLE_RFID_AUTHORIZATION_MODE,
-                    SERVICE_SET_CURRENT_PHASE, VALUE)
+from .const import (
+    ID,
+    SERVICE_DISABLE_RFID_AUTHORIZATION_MODE,
+    SERVICE_ENABLE_RFID_AUTHORIZATION_MODE,
+    SERVICE_SET_CURRENT_PHASE,
+    VALUE,
+)
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass

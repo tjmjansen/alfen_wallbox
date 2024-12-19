@@ -1,14 +1,10 @@
 """Base entity for Alfen Wallbox integration."""
 
-import logging
-
 from homeassistant.helpers.entity import DeviceInfo, Entity
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import DOMAIN as ALFEN_DOMAIN
 from .coordinator import AlfenConfigEntry, AlfenCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 
 class AlfenEntity(CoordinatorEntity[AlfenCoordinator], Entity):

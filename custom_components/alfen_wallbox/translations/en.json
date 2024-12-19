@@ -3,25 +3,30 @@
     "step": {
       "user": {
         "title": "Configure Alfen Wallbox",
-        "description": "Enter IP address of your Alfen Wallbox.",
+        "description": "Enter IP address and credentials of your Alfen Wallbox.",
         "data": {
           "host": "Host",
           "name": "Friendly name",
-          "username": "Username",
+          "username": "User name",
           "password": "Password"
-        },
-        "options": {
-          "scan_interval": "Scan interval",
-          "timeout": "Timeout",
-          "get_transaction_data": "Get transaction data"
         }
       }
     },
     "abort": {
       "device_timeout": "Timeout connecting to the device.",
       "device_fail": "Unexpected error creating device.",
-      "already_configured": "Device is already configured.",
-      "invalid_current_limit": "Invalid current limit (1 - 32A)."
+      "already_configured": "Device is already configured"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Scan interval",
+          "timeout": "Timeout",
+          "get_transaction_data": "Get transaction data."
+        }
+      }
     }
   }
 }

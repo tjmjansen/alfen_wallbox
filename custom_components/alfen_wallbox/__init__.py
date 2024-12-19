@@ -3,24 +3,28 @@
 import logging
 from typing import Any
 
-from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PASSWORD,
-                                 CONF_SCAN_INTERVAL, CONF_TIMEOUT,
-                                 CONF_USERNAME, Platform)
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_TIMEOUT,
+    CONF_USERNAME,
+    Platform,
+)
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry
+from homeassistant.helpers import entity_registry as er
 
-from .const import (CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL,
-                    DEFAULT_TIMEOUT)
-from .coordinator import (AlfenConfigEntry, AlfenCoordinator,
-                          options_update_listener)
+from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT
+from .coordinator import AlfenConfigEntry, AlfenCoordinator, options_update_listener
 
 PLATFORMS = [
-    Platform.SENSOR,
-    Platform.SELECT,
     Platform.BINARY_SENSOR,
-    Platform.SWITCH,
-    Platform.NUMBER,
     Platform.BUTTON,
+    Platform.NUMBER,
+    Platform.SELECT,
+    Platform.SENSOR,
+    Platform.SWITCH,
     Platform.TEXT,
 ]
 
@@ -63,7 +67,7 @@ async def async_setup_entry(
     hass: HomeAssistant, config_entry: AlfenConfigEntry
 ) -> bool:
     """Set up Alfen from a config entry."""
-    await entity_registry.async_migrate_entries(
+    await er.async_migrate_entries(
         hass, config_entry.entry_id, async_migrate_entity_entry
     )
 
@@ -90,7 +94,7 @@ async def async_unload_entry(
 
 @callback
 def async_migrate_entity_entry(
-    entity_entry: entity_registry.RegistryEntry,
+    entity_entry: er.RegistryEntry,
 ) -> dict[str, Any] | None:
     """Migrate a Alfen entity entry."""
 

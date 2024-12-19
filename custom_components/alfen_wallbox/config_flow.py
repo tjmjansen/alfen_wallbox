@@ -1,21 +1,28 @@
 """Config flow for the Alfen Wallbox platform."""
 
-# import asyncio
 import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import (CONN_CLASS_LOCAL_POLL, ConfigEntry,
-                                          ConfigFlow, ConfigFlowResult,
-                                          OptionsFlow)
-from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PASSWORD,
-                                 CONF_SCAN_INTERVAL, CONF_TIMEOUT,
-                                 CONF_USERNAME)
+from homeassistant.config_entries import (
+    CONN_CLASS_LOCAL_POLL,
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_TIMEOUT,
+    CONF_USERNAME,
+)
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 
-from .const import (CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL,
-                    DEFAULT_TIMEOUT, DOMAIN)
+from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 

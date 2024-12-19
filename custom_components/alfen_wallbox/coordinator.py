@@ -6,10 +6,16 @@ from datetime import timedelta
 
 from aiohttp import ClientConnectionError
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PASSWORD,
-                                 CONF_SCAN_INTERVAL, CONF_TIMEOUT,
-                                 CONF_USERNAME)
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_TIMEOUT,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .alfen import AlfenDevice
@@ -25,22 +31,25 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
 
     def __init__(self, hass: HomeAssistant, entry: AlfenConfigEntry) -> None:
         """Initialize the coordinator."""
+        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(
-                seconds=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-            ),
+            update_interval=timedelta(seconds=scan_interval),
         )
+
         self.entry = entry
+        session = async_get_clientsession(hass, verify_ssl=False)
+        session.connector._keepalive_timeout = 2 * scan_interval
+
         self.device = AlfenDevice(
-            hass,
+            session,
             entry.data[CONF_HOST],
             entry.data[CONF_NAME],
             entry.data[CONF_USERNAME],
             entry.data[CONF_PASSWORD],
-            entry.options[CONF_SCAN_INTERVAL],
             entry.options[CONF_TRANSACTION_DATA],
         )
 
@@ -68,7 +77,7 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
                 if not self.device.id:
                     return False
                 return True
-        except TimeoutError as e:
+        except TimeoutError:
             _LOGGER.debug("Connection to %s timed out", self.entry.data[CONF_HOST])
             return False
         except ClientConnectionError as e:

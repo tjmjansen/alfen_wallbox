@@ -1,23 +1,23 @@
 """Button entity for Alfen EV chargers.""" ""
 
-import logging
 from dataclasses import dataclass
 from typing import Final
 
-from homeassistant.components.button import (ButtonEntity,
-                                             ButtonEntityDescription)
-from homeassistant.config_entries import ConfigEntry
+from homeassistant.components.button import ButtonEntity, ButtonEntityDescription
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .const import (CMD, COMMAND_REBOOT, DISPLAY_NAME_VALUE, LOGIN, LOGOUT,
-                    METHOD_POST, PARAM_COMMAND, PARAM_DISPLAY_NAME,
-                    PARAM_PASSWORD, PARAM_USERNAME)
-from .coordinator import AlfenConfigEntry, AlfenCoordinator
+from .const import (
+    CMD,
+    COMMAND_REBOOT,
+    FORCE_UPDATE,
+    LOGIN,
+    LOGOUT,
+    METHOD_POST,
+    PARAM_COMMAND,
+)
+from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -96,29 +96,14 @@ class AlfenButton(AlfenEntity, ButtonEntity):
 
     async def async_press(self) -> None:
         """Press the button."""
-        if self.entity_description.url_action == "Force Update":
+        if self.entity_description.url_action == FORCE_UPDATE:
             await self.coordinator.device.async_update()
             return
 
         if self.entity_description.url_action == LOGIN:
-            resp = await self.coordinator.device.async_request(
-                method=self.entity_description.method,
-                cmd=self.entity_description.url_action,
-                json_data={
-                    PARAM_USERNAME: self.coordinator.device.username,
-                    PARAM_PASSWORD: self.coordinator.device.password,
-                    PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE,
-                },
-            )
-            if resp and resp.status == 200:
-                self.coordinator.device.keepLogout = False
-                return
-        else:
-            resp = await self.coordinator.device.async_request(
-                method=self.entity_description.method,
-                cmd=self.entity_description.url_action,
-                json_data=self.entity_description.json_data,
-            )
-            if resp and resp.status == 200:
-                self.coordinator.device.keepLogout = True
-                return
+            await self.coordinator.device.login()
+            return
+
+        if self.entity_description.url_action == LOGOUT:
+            await self.coordinator.device.logout()
+            return

@@ -1,31 +1,35 @@
 """Support for Alfen Eve Single Proline Wallbox."""
 
 import datetime
-import logging
 from dataclasses import dataclass
-from datetime import timedelta
 from typing import Final
 
-from homeassistant import const
-from homeassistant.components.sensor import (SensorDeviceClass, SensorEntity,
-                                             SensorEntityDescription,
-                                             SensorStateClass)
-from homeassistant.const import (PERCENTAGE, UnitOfElectricCurrent,
-                                 UnitOfElectricPotential, UnitOfEnergy,
-                                 UnitOfFrequency, UnitOfPower,
-                                 UnitOfTemperature, UnitOfTime)
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorEntityDescription,
+    SensorStateClass,
+)
+from homeassistant.const import (
+    PERCENTAGE,
+    SIGNAL_STRENGTH_DECIBELS,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+    UnitOfEnergy,
+    UnitOfFrequency,
+    UnitOfPower,
+    UnitOfTemperature,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .const import DEFAULT_SCAN_INTERVAL, ID, SERVICE_REBOOT_WALLBOX, VALUE
+from .const import ID, SERVICE_REBOOT_WALLBOX, VALUE
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -705,7 +709,7 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         name="GPRS Signal",
         icon="mdi:antenna",
         api_param="2110_0",
-        unit=const.SIGNAL_STRENGTH_DECIBELS,
+        unit=SIGNAL_STRENGTH_DECIBELS,
         round_digits=None,
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.SIGNAL_STRENGTH,
@@ -1491,7 +1495,6 @@ async def async_setup_platform(
     discovery_info=None,
 ):
     """Set up the Alfen sensor."""
-    pass
 
 
 async def async_setup_entry(

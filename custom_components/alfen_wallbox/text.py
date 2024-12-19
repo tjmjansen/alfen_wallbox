@@ -1,22 +1,16 @@
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Final
 
 from homeassistant.components.counter import VALUE
-from homeassistant.components.text import (TextEntity, TextEntityDescription,
-                                           TextMode)
+from homeassistant.components.text import TextEntity, TextEntityDescription, TextMode
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
 from .const import ID
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass

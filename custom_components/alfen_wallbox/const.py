@@ -13,10 +13,12 @@ METHOD_POST = "POST"
 METHOD_GET = "GET"
 
 CMD = "cmd"
+FORCE_UPDATE = "Force Update"
 PROP = "prop"
 INFO = "info"
 LOGIN = "login"
 LOGOUT = "logout"
+
 
 PARAM_USERNAME = "username"
 PARAM_PASSWORD = "password"

@@ -5,15 +5,25 @@ from dataclasses import dataclass
 from typing import Final
 
 from homeassistant.components.binary_sensor import (
-    BinarySensorEntity, BinarySensorEntityDescription)
+    BinarySensorEntity,
+    BinarySensorEntityDescription,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (ID, LICENSE_HIGH_POWER, LICENSE_LOAD_BALANCING_ACTIVE,
-                    LICENSE_LOAD_BALANCING_STATIC, LICENSE_MOBILE,
-                    LICENSE_NONE, LICENSE_PAYMENT_GIROE,
-                    LICENSE_PERSONALIZED_DISPLAY, LICENSE_RFID, LICENSE_SCN,
-                    VALUE)
+from .const import (
+    ID,
+    LICENSE_HIGH_POWER,
+    LICENSE_LOAD_BALANCING_ACTIVE,
+    LICENSE_LOAD_BALANCING_STATIC,
+    LICENSE_MOBILE,
+    LICENSE_NONE,
+    LICENSE_PAYMENT_GIROE,
+    LICENSE_PERSONALIZED_DISPLAY,
+    LICENSE_RFID,
+    LICENSE_SCN,
+    VALUE,
+)
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
