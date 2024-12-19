@@ -80,24 +80,25 @@ class AlfenDevice:
         self.latest_tag = None
         self.transaction_offset = 0
         self.transaction_counter = 0
-        self.initilize = False
         self.get_transactions = get_transactions
 
-        disable_warnings()
+        # disable_warnings()
 
-        # Default ciphers needed as of python 3.10
-        context = ssl.create_default_context()
-        context.set_ciphers("DEFAULT")
-        context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
-        self.ssl = context
+        # # Default ciphers needed as of python 3.10
+        # context = ssl.create_default_context()
+        # context.set_ciphers("DEFAULT")
+        # context.check_hostname = False
+        # context.verify_mode = ssl.CERT_NONE
+        # self.ssl = context
 
-    async def init(self):
+    async def init(self) -> bool:
         """Initialize the Alfen API."""
-        await self.get_info()
+        result = await self.get_info()
         self.id = f"alfen_{self.name}"
         if self.name is None:
             self.name = f"{self.info.identity} ({self.host})"
+
+        return result
 
     def get_number_of_socket(self):
         """Get number of socket from the properties."""
@@ -115,24 +116,26 @@ class AlfenDevice:
                         self.licenses.append(key)
                 break
 
-    async def get_info(self):
+    async def get_info(self) -> bool:
         """Get info from the API."""
-        response = await self._session.get(url=self.__get_url(INFO), ssl=self.ssl)
+        response = await self._session.get(url=self.__get_url(INFO))  # , ssl=self.ssl)
         _LOGGER.debug("Response %s", str(response))
-        if response.status != 200:
-            _LOGGER.debug("Info API not available, use generic info")
 
-            generic_info = {
-                "Identity": self.host,
-                "FWVersion": "?",
-                "Model": "Generic Alfen Wallbox",
-                "ObjectId": "?",
-                "Type": "?",
-            }
-            self.info = AlfenDeviceInfo(generic_info)
-        else:
+        if response.status == 200:
             resp = await response.json(content_type=None)
             self.info = AlfenDeviceInfo(resp)
+            return True
+
+        _LOGGER.debug("Info API not available, use generic info")
+        generic_info = {
+            "Identity": self.host,
+            "FWVersion": "?",
+            "Model": "Generic Alfen Wallbox",
+            "ObjectId": "?",
+            "Type": "?",
+        }
+        self.info = AlfenDeviceInfo(generic_info)
+        return False
 
     @property
     def status(self) -> str:
@@ -150,17 +153,22 @@ class AlfenDevice:
             "sw_version": self.info.firmware_version,
         }
 
-    async def async_update(self):
+    async def async_update(self) -> bool:
         """Update the device properties."""
 
-        if not self.keep_logout:
-            await self._get_all_properties_value()
+        if self.keep_logout:
+            return True
 
-            if self.get_transactions:
-                if self.transaction_counter == 0 and not self.initilize:
-                    await self._get_transaction()
-                if not self.initilize:
-                    self.transaction_counter += 1
+        result = await self._get_all_properties_value()
+        if not result:
+            return False
+
+        if self.get_transactions:
+            if self.transaction_counter == 0:
+                await self._get_transaction()
+                self.transaction_counter += 1
+
+        return True
 
     async def _post(
         self, cmd, payload=None, allowed_login=True
@@ -173,7 +181,7 @@ class AlfenDevice:
                 json=payload,
                 headers=POST_HEADER_JSON,
                 timeout=DEFAULT_TIMEOUT,
-                ssl=self.ssl,
+                # ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST with login")
@@ -201,7 +209,8 @@ class AlfenDevice:
         """Send a GET request to the API."""
         try:
             async with self._session.get(
-                url, timeout=DEFAULT_TIMEOUT, ssl=self.ssl
+                url,
+                timeout=DEFAULT_TIMEOUT,  # , ssl=self.ssl
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("GET with login")
@@ -259,7 +268,8 @@ class AlfenDevice:
                 json={api_param: {ID: api_param, VALUE: str(value)}},
                 headers=POST_HEADER_JSON,
                 timeout=DEFAULT_TIMEOUT,
-                ssl=self.ssl,
+                # ,
+                # ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST(Update) with login")
@@ -286,7 +296,7 @@ class AlfenDevice:
                         prop[VALUE] = resp[VALUE]
                         break
 
-    async def _get_all_properties_value(self):
+    async def _get_all_properties_value(self) -> bool:
         """Get all properties from the API."""
         _LOGGER.debug("Get properties")
         properties = []
@@ -322,10 +332,12 @@ class AlfenDevice:
                     # It's better to break completely, otherwise we can provide partial data in self.properties.
                     _LOGGER.debug("Returning earlier after %s attempts", str(attempt))
                     self.properties = []
-                    return
+                    return False
 
         _LOGGER.debug("Properties %s", str(properties))
         self.properties = properties
+
+        return True
 
     async def reboot_wallbox(self):
         """Reboot the wallbox."""

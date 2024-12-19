@@ -1,7 +1,10 @@
 """Class representing a Alfen Wallbox update coordinator."""
 
-import asyncio
 import logging
+
+import async_timeout
+import asyncio
+
 from datetime import timedelta
 
 from aiohttp import ClientConnectionError
@@ -16,10 +19,13 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.helpers.update_coordinator import (
+    DataUpdateCoordinator,
+    UpdateFailed,
+)
 
 from .alfen import AlfenDevice
-from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DOMAIN
+from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,52 +37,51 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
 
     def __init__(self, hass: HomeAssistant, entry: AlfenConfigEntry) -> None:
         """Initialize the coordinator."""
-        scan_interval = entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
-
         super().__init__(
             hass,
             _LOGGER,
             name=DOMAIN,
-            update_interval=timedelta(seconds=scan_interval),
+            update_interval=timedelta(
+                seconds=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+            ),
         )
 
         self.entry = entry
-        session = async_get_clientsession(hass, verify_ssl=False)
-        session.connector._keepalive_timeout = 2 * scan_interval
+        self.hass = hass
+        self.device = None
+        self.timeout = self.entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+
+    async def _async_setup(self):
+        """Set up the coordinator."""
+        session = async_get_clientsession(self.hass, verify_ssl=False)
 
         self.device = AlfenDevice(
             session,
-            entry.data[CONF_HOST],
-            entry.data[CONF_NAME],
-            entry.data[CONF_USERNAME],
-            entry.data[CONF_PASSWORD],
-            entry.options[CONF_TRANSACTION_DATA],
+            self.entry.data[CONF_HOST],
+            self.entry.data[CONF_NAME],
+            self.entry.data[CONF_USERNAME],
+            self.entry.data[CONF_PASSWORD],
+            self.entry.options[CONF_TRANSACTION_DATA],
         )
+        if not await self.async_connect():
+            raise UpdateFailed("Error communicating with API")
 
     async def _async_update_data(self) -> None:
         """Fetch data from API endpoint."""
 
-        if not self.device.id:
-            if not await self.async_connect():
-                return False
+        async with async_timeout.timeout(self.timeout):
+            if not await self.device.async_update():
+                raise UpdateFailed("Error updating")
 
-        await self.device.async_update()
-        self.device.get_number_of_socket()
-        self.device.get_licenses()
-
-        return True
+            self.device.get_number_of_socket()
+            self.device.get_licenses()
 
     async def async_connect(self) -> bool:
         """Connect to the API endpoint."""
 
         try:
-            async with asyncio.timeout(self.entry.options[CONF_TIMEOUT]):
-                self.device.initilize = True
-                await self.device.init()
-                self.device.initilize = False
-                if not self.device.id:
-                    return False
-                return True
+            async with asyncio.timeout(self.timeout):
+                return await self.device.init()
         except TimeoutError:
             _LOGGER.debug("Connection to %s timed out", self.entry.data[CONF_HOST])
             return False

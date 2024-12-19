@@ -48,19 +48,19 @@ class AlfenOptionsFlowHandler(OptionsFlow):
             step_id="init",
             data_schema=vol.Schema(
                 {
-                    vol.Optional(
+                    vol.Required(
                         CONF_SCAN_INTERVAL,
                         default=self.config_entry.options.get(
                             CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL
                         ),
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=300)),
-                    vol.Optional(
+                    vol.Required(
                         CONF_TIMEOUT,
                         default=self.config_entry.options.get(
                             CONF_TIMEOUT, DEFAULT_TIMEOUT
                         ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=15, max=300)),
-                    vol.Optional(
+                    ): vol.All(vol.Coerce(int), vol.Range(min=15, max=30)),
+                    vol.Required(
                         CONF_TRANSACTION_DATA,
                         default=self.config_entry.options.get(
                             CONF_TRANSACTION_DATA, True
