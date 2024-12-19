@@ -59,7 +59,7 @@ class AlfenOptionsFlowHandler(OptionsFlow):
                         default=self.config_entry.options.get(
                             CONF_TIMEOUT, DEFAULT_TIMEOUT
                         ),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=15, max=30)),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
                     vol.Required(
                         CONF_TRANSACTION_DATA,
                         default=self.config_entry.options.get(
