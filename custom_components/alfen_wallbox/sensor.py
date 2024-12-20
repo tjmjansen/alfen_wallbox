@@ -1,6 +1,7 @@
 """Support for Alfen Eve Single Proline Wallbox."""
 
 import datetime
+
 from dataclasses import dataclass
 from typing import Final
 
@@ -1565,6 +1566,14 @@ class AlfenMainSensor(AlfenEntity):
                 return prop[VALUE]
 
         return "Unknown"
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
+        return None
 
     async def async_reboot_wallbox(self):
         """Reboot the wallbox."""
