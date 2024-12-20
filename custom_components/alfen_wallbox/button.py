@@ -97,6 +97,7 @@ class AlfenButton(AlfenEntity, ButtonEntity):
     async def async_press(self) -> None:
         """Press the button."""
         if self.entity_description.url_action == FORCE_UPDATE:
+            self.coordinator.device.get_static_properties = True
             await self.coordinator.device.async_update()
             return
 

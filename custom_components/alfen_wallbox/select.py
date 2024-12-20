@@ -10,6 +10,7 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CAT,
     ID,
     SERVICE_DISABLE_RFID_AUTHORIZATION_MODE,
     SERVICE_ENABLE_RFID_AUTHORIZATION_MODE,
@@ -358,6 +359,14 @@ class AlfenSelect(AlfenEntity, SelectEntity):
         """Return the current option."""
         value = self._get_current_option()
         return self.values_dict.get(value)
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
+        return None
 
     def _get_current_option(self) -> str | None:
         """Return the current option."""

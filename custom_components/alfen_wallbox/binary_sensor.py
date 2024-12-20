@@ -12,6 +12,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CAT,
     ID,
     LICENSE_HIGH_POWER,
     LICENSE_LOAD_BALANCING_ACTIVE,
@@ -196,3 +197,11 @@ class AlfenBinarySensor(AlfenEntity, BinarySensorEntity):
             return False
 
         return self._attr_is_on
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
+        return None

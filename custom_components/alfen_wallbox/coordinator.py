@@ -1,31 +1,23 @@
 """Class representing a Alfen Wallbox update coordinator."""
 
-import logging
-
-import async_timeout
 import asyncio
-
+import logging
 from datetime import timedelta
 
+import async_timeout
 from aiohttp import ClientConnectionError
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_NAME,
-    CONF_PASSWORD,
-    CONF_SCAN_INTERVAL,
-    CONF_TIMEOUT,
-    CONF_USERNAME,
-)
+from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PASSWORD,
+                                 CONF_SCAN_INTERVAL, CONF_TIMEOUT,
+                                 CONF_USERNAME)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (
-    DataUpdateCoordinator,
-    UpdateFailed,
-)
+from homeassistant.helpers.update_coordinator import (DataUpdateCoordinator,
+                                                      UpdateFailed)
 
 from .alfen import AlfenDevice
-from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN
+from .const import (CONF_REFRESH_CATEGORIES, DEFAULT_REFRESH_CATEGORIES,
+                    DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -61,7 +53,7 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
             self.entry.data[CONF_NAME],
             self.entry.data[CONF_USERNAME],
             self.entry.data[CONF_PASSWORD],
-            self.entry.options[CONF_TRANSACTION_DATA],
+            self.entry.options.get(CONF_REFRESH_CATEGORIES, DEFAULT_REFRESH_CATEGORIES),
         )
         if not await self.async_connect():
             raise UpdateFailed("Error communicating with API")
@@ -103,11 +95,12 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
 
 async def options_update_listener(self, entry: AlfenConfigEntry):
     """Handle options update."""
-    self.coordinator = entry.runtime_data
-    self.coordinator.device.get_transactions = entry.options.get(
-        CONF_TRANSACTION_DATA, False
+    coordinator = entry.runtime_data
+    coordinator.device.get_static_properties = True
+    coordinator.device.category_options = entry.options.get(
+        CONF_REFRESH_CATEGORIES, DEFAULT_REFRESH_CATEGORIES
     )
 
-    self.coordinator.update_interval = timedelta(
+    coordinator.update_interval = timedelta(
         seconds=entry.options.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
     )

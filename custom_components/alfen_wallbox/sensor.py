@@ -27,7 +27,7 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from .const import ID, SERVICE_REBOOT_WALLBOX, VALUE
+from .const import CAT, ID, SERVICE_REBOOT_WALLBOX, VALUE
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
@@ -1961,6 +1961,14 @@ class AlfenSensor(AlfenEntity, SensorEntity):
                     return STATUS_DICT.get(prop[VALUE], "Unknown")
 
                 return prop[VALUE]
+        return None
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
         return None
 
     @property

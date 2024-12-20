@@ -1,6 +1,5 @@
 """Config flow for the Alfen Wallbox platform."""
 
-import logging
 from typing import Any
 
 import voluptuous as vol
@@ -22,15 +21,19 @@ from homeassistant.const import (
 from homeassistant.core import callback
 from homeassistant.helpers import config_validation as cv
 
-from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN
-
-_LOGGER = logging.getLogger(__name__)
-
+from .const import (
+    CATEGORIES,
+    CONF_REFRESH_CATEGORIES,
+    DEFAULT_REFRESH_CATEGORIES,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TIMEOUT,
+    DOMAIN,
+)
 
 DEFAULT_OPTIONS = {
     CONF_SCAN_INTERVAL: DEFAULT_SCAN_INTERVAL,
     CONF_TIMEOUT: DEFAULT_TIMEOUT,
-    CONF_TRANSACTION_DATA: False,
+    CONF_REFRESH_CATEGORIES: DEFAULT_REFRESH_CATEGORIES,
 }
 
 
@@ -61,12 +64,12 @@ class AlfenOptionsFlowHandler(OptionsFlow):
                         ),
                     ): vol.All(vol.Coerce(int), vol.Range(min=1, max=30)),
                     vol.Required(
-                        CONF_TRANSACTION_DATA,
+                        CONF_REFRESH_CATEGORIES,
                         default=self.config_entry.options.get(
-                            CONF_TRANSACTION_DATA, True
+                            CONF_REFRESH_CATEGORIES, DEFAULT_REFRESH_CATEGORIES
                         ),
-                    ): cv.boolean,
-                }
+                    ): cv.multi_select(CATEGORIES),
+                },
             ),
         )
 

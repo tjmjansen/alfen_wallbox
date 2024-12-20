@@ -15,7 +15,12 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_registry as er
 
-from .const import CONF_TRANSACTION_DATA, DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT
+from .const import (
+    CONF_REFRESH_CATEGORIES,
+    DEFAULT_REFRESH_CATEGORIES,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TIMEOUT,
+)
 from .coordinator import AlfenConfigEntry, AlfenCoordinator, options_update_listener
 
 PLATFORMS = [
@@ -42,7 +47,7 @@ async def async_migrate_entry(
         options = {
             CONF_SCAN_INTERVAL: scan_interval,
             CONF_TIMEOUT: DEFAULT_TIMEOUT,
-            CONF_TRANSACTION_DATA: False,
+            CONF_REFRESH_CATEGORIES: DEFAULT_REFRESH_CATEGORIES,
         }
         data = {
             CONF_HOST: config_entry.data.get(CONF_HOST),
