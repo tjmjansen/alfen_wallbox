@@ -5,19 +5,33 @@ from dataclasses import dataclass
 from typing import Final
 
 import voluptuous as vol
-from homeassistant.components.number import (NumberDeviceClass, NumberEntity,
-                                             NumberEntityDescription,
-                                             NumberMode)
-from homeassistant.const import (CURRENCY_EURO, PERCENTAGE,
-                                 UnitOfElectricCurrent, UnitOfPower,
-                                 UnitOfTime)
+from homeassistant.components.number import (
+    NumberDeviceClass,
+    NumberEntity,
+    NumberEntityDescription,
+    NumberMode,
+)
+from homeassistant.const import (
+    CURRENCY_EURO,
+    PERCENTAGE,
+    UnitOfElectricCurrent,
+    UnitOfPower,
+    UnitOfTime,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import (ID, LICENSE_HIGH_POWER, SERVICE_SET_COMFORT_POWER,
-                    SERVICE_SET_CURRENT_LIMIT, SERVICE_SET_GREEN_SHARE, VALUE)
+from .const import (
+    CAT,
+    ID,
+    LICENSE_HIGH_POWER,
+    SERVICE_SET_COMFORT_POWER,
+    SERVICE_SET_CURRENT_LIMIT,
+    SERVICE_SET_GREEN_SHARE,
+    VALUE,
+)
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
@@ -561,6 +575,14 @@ class AlfenNumber(AlfenEntity, NumberEntity):
                 self.entity_description.api_param, int(value)
             )
         self._set_current_option()
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
+        return None
 
     def _get_current_option(self) -> str | None:
         """Return the current option."""

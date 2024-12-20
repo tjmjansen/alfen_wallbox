@@ -25,7 +25,7 @@
                 "data": {
                     "scan_interval": "Vernieuw interval",
                     "timeout": "Timeout",
-                    "get_transaction_data": "Haal transactiegegevens op"
+                    "refresh_categories": "Selecteer de categoriën om periodiek te updaten"
                 }
             }
         }

@@ -9,6 +9,7 @@ from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
+    CAT,
     ID,
     SERVICE_DISABLE_PHASE_SWITCHING,
     SERVICE_ENABLE_PHASE_SWITCHING,
@@ -134,6 +135,14 @@ class AlfenSwitchSensor(AlfenEntity, SwitchEntity):
                 return prop[VALUE] == 1
 
         return False
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
+        return None
 
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the light on."""

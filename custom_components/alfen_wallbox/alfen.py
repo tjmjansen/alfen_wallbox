@@ -1,5 +1,6 @@
 """Alfen Wallbox API."""
 
+import datetime
 import json
 import logging
 import ssl
@@ -10,17 +11,8 @@ from urllib3 import disable_warnings
 from .const import (
     ALFEN_PRODUCT_MAP,
     CAT,
-    CAT_COMM,
-    CAT_DISPLAY,
-    CAT_GENERIC,
-    CAT_GENERIC2,
-    CAT_MBUS_TCP,
-    CAT_METER1,
-    CAT_METER2,
-    CAT_METER4,
-    CAT_OCPP,
-    CAT_STATES,
-    CAT_TEMP,
+    CAT_TRANSACTIONS,
+    CATEGORIES,
     CMD,
     DEFAULT_TIMEOUT,
     DISPLAY_NAME_VALUE,
@@ -57,7 +49,7 @@ class AlfenDevice:
         name: str,
         username: str,
         password: str,
-        get_transactions: bool,
+        category_options: list,
     ) -> None:
         """Init."""
 
@@ -66,6 +58,7 @@ class AlfenDevice:
         self._status = None
         self._session = session
         self.username = username
+        self.category_options = category_options
         self.info = None
         self.id = None
         if self.username is None:
@@ -80,7 +73,8 @@ class AlfenDevice:
         self.latest_tag = None
         self.transaction_offset = 0
         self.transaction_counter = 0
-        self.get_transactions = get_transactions
+        self.static_properties = []
+        self.get_static_properties = True
 
         # disable_warnings()
 
@@ -124,6 +118,7 @@ class AlfenDevice:
         if response.status == 200:
             resp = await response.json(content_type=None)
             self.info = AlfenDeviceInfo(resp)
+
             return True
 
         _LOGGER.debug("Info API not available, use generic info")
@@ -155,15 +150,29 @@ class AlfenDevice:
 
     async def async_update(self) -> bool:
         """Update the device properties."""
-
         if self.keep_logout:
             return True
 
-        result = await self._get_all_properties_value()
-        if not result:
-            return False
+        dynamic_properties = []
+        self.properties = []
+        if self.get_static_properties:
+            self.static_properties = []
 
-        if self.get_transactions:
+        for cat in CATEGORIES:
+            if cat == CAT_TRANSACTIONS:
+                continue
+            if cat in self.category_options:
+                dynamic_properties = (
+                    dynamic_properties + await self._get_all_properties_value(cat)
+                )
+            elif self.get_static_properties:
+                self.static_properties = (
+                    self.static_properties + await self._get_all_properties_value(cat)
+                )
+        self.properties = self.static_properties + dynamic_properties
+        self.get_static_properties = False
+
+        if CAT_TRANSACTIONS in self.category_options:
             if self.transaction_counter == 0:
                 await self._get_transaction()
                 self.transaction_counter += 1
@@ -296,48 +305,38 @@ class AlfenDevice:
                         prop[VALUE] = resp[VALUE]
                         break
 
-    async def _get_all_properties_value(self) -> bool:
+    async def _get_all_properties_value(self, category: str) -> list:
         """Get all properties from the API."""
         _LOGGER.debug("Get properties")
-        properties = []
-        for cat in (
-            CAT_GENERIC,
-            CAT_GENERIC2,
-            CAT_METER1,
-            CAT_STATES,
-            CAT_TEMP,
-            CAT_OCPP,
-            CAT_METER4,
-            CAT_MBUS_TCP,
-            CAT_COMM,
-            CAT_DISPLAY,
-            CAT_METER2,
-        ):
-            nextRequest = True
-            offset = 0
-            attempt = 0
-            while nextRequest:
-                attempt += 1
-                cmd = f"{PROP}?{CAT}={cat}&{OFFSET}={offset}"
-                response = await self._get(url=self.__get_url(cmd))
-                _LOGGER.debug("Status Response %s: %s", cmd, str(response))
 
-                if response is not None:
-                    attempt = 0
-                    properties += response[PROPERTIES]
-                    nextRequest = response[TOTAL] > (offset + len(response[PROPERTIES]))
-                    offset += len(response[PROPERTIES])
-                elif attempt >= 3:
-                    # This only possible in case of series of timeouts or unknown exceptions in self._get()
-                    # It's better to break completely, otherwise we can provide partial data in self.properties.
-                    _LOGGER.debug("Returning earlier after %s attempts", str(attempt))
-                    self.properties = []
-                    return False
+        properties = []
+        tx_start = datetime.datetime.now()
+        nextRequest = True
+        offset = 0
+        attempt = 0
+
+        while nextRequest:
+            attempt += 1
+            cmd = f"{PROP}?{CAT}={category}&{OFFSET}={offset}"
+            response = await self._get(url=self.__get_url(cmd))
+            _LOGGER.debug("Status Response %s: %s", cmd, str(response))
+
+            if response is not None:
+                attempt = 0
+                properties += response[PROPERTIES]
+                nextRequest = response[TOTAL] > (offset + len(response[PROPERTIES]))
+                offset += len(response[PROPERTIES])
+            elif attempt >= 3:
+                # This only possible in case of series of timeouts or unknown exceptions in self._get()
+                # It's better to break completely, otherwise we can provide partial data in self.properties.
+                _LOGGER.debug("Returning earlier after %s attempts", str(attempt))
+                self.properties = []
+                return False
 
         _LOGGER.debug("Properties %s", str(properties))
-        self.properties = properties
-
-        return True
+        runtime = datetime.datetime.now() - tx_start
+        _LOGGER.info("Called %s in %.2f seconds", category, runtime.total_seconds())
+        return properties
 
     async def reboot_wallbox(self):
         """Reboot the wallbox."""
@@ -516,7 +515,7 @@ class AlfenDevice:
 
     async def get_value(self, api_param):
         """Get a value from the API."""
-        await self._get_value(api_param)
+        return await self._get_value(api_param)
 
     async def set_current_limit(self, limit) -> None:
         """Set the current limit."""

@@ -27,23 +27,60 @@ PARAM_DISPLAY_NAME = "displayname"
 
 DISPLAY_NAME_VALUE = "ha"
 
-CAT_GENERIC = "generic"
-CAT_GENERIC2 = "generic2"
-CAT_METER1 = "meter1"
-CAT_METER4 = "meter4"
-CAT_STATES = "states"
-CAT_TEMP = "temp"
-CAT_OCPP = "ocpp"
-CAT_MBUS_TCP = "MbusTCP"
 CAT_COMM = "comm"
 CAT_DISPLAY = "display"
+CAT_GENERIC = "generic"
+CAT_GENERIC2 = "generic2"
+CAT_MBUS_TCP = "MbusTCP"
+CAT_METER1 = "meter1"
+CAT_METER2 = "meter2"
+CAT_METER4 = "meter4"
+CAT_OCPP = "ocpp"
+CAT_STATES = "states"
+CAT_TEMP = "temp"
 # CAT_LEDS = "leds"
 # CAT_ACCELERO = "accelero"
-CAT_METER2 = "meter2"
+CAT_TRANSACTIONS = "transactions"
 
 COMMAND_REBOOT = "reboot"
 
-CONF_TRANSACTION_DATA = "get_transaction_data"
+CONF_REFRESH_CATEGORIES = "refresh_categories"
+
+DEFAULT_REFRESH_CATEGORIES = (
+    CAT_DISPLAY,
+    CAT_METER1,
+    CAT_METER2,
+    CAT_METER4,
+    CAT_STATES,
+    CAT_TEMP,
+)
+
+CATEGORIES = (
+    CAT_COMM,
+    CAT_DISPLAY,
+    CAT_GENERIC,
+    CAT_GENERIC2,
+    CAT_MBUS_TCP,
+    CAT_METER1,
+    CAT_METER2,
+    CAT_METER4,
+    CAT_OCPP,
+    CAT_STATES,
+    CAT_TEMP,
+    CAT_TRANSACTIONS,
+)
+
+# CONF_GENERIC = "get_generic"
+# CONF_GENERIC2 = "get_generic2"
+# CONF_METER1 = "get_meter1"
+# CONF_METER2 = "get_meter2"
+# CONF_METER4 = "get_meter4"
+# CONF_STATES = "states"
+# CONF_TEMP = "temp"
+# CONF_OCPP = "ocpp"
+# CONF_MBUSTCP = "MbusTCP"
+# CONF_COMM = "comm"
+# CONF_TRANSACTION_DATA = "display"
 
 DEFAULT_SCAN_INTERVAL = 5
 DEFAULT_TIMEOUT = 20

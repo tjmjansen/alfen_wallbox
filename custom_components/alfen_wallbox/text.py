@@ -8,7 +8,7 @@ from homeassistant.components.text import TextEntity, TextEntityDescription, Tex
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import ID
+from .const import CAT, ID
 from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
@@ -112,3 +112,11 @@ class AlfenText(AlfenEntity, TextEntity):
             self.entity_description.api_param, value
         )
         self.async_write_ha_state()
+
+    @property
+    def extra_state_attributes(self):
+        """Return the default attributes of the element."""
+        for prop in self.coordinator.device.properties:
+            if prop[ID] == self.entity_description.api_param:
+                return {"category": prop[CAT]}
+        return None

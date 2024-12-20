@@ -22,9 +22,9 @@
     "step": {
       "init": {
         "data": {
-          "scan_interval": "Scan interval",
+          "scan_interval": "Vernieuw interval",
           "timeout": "Timeout",
-          "get_transaction_data": "Get transaction data."
+          "refresh_categories": "Select the categories to update periodically"
         }
       }
     }
