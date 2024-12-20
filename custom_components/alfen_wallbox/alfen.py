@@ -11,17 +11,6 @@ from urllib3 import disable_warnings
 from .const import (
     ALFEN_PRODUCT_MAP,
     CAT,
-    CAT_COMM,
-    CAT_DISPLAY,
-    CAT_GENERIC,
-    CAT_GENERIC2,
-    CAT_MBUS_TCP,
-    CAT_METER1,
-    CAT_METER2,
-    CAT_METER4,
-    CAT_OCPP,
-    CAT_STATES,
-    CAT_TEMP,
     CAT_TRANSACTIONS,
     CATEGORIES,
     CMD,
@@ -48,22 +37,6 @@ from .const import (
 POST_HEADER_JSON = {"Content-Type": "application/json"}
 
 _LOGGER = logging.getLogger(__name__)
-
-CAT_STATIC = (
-    CAT_COMM,
-    CAT_GENERIC,
-    CAT_GENERIC2,
-    CAT_MBUS_TCP,
-    CAT_OCPP,
-)
-CAT_DYNAMIC = (
-    CAT_DISPLAY,
-    CAT_METER1,
-    CAT_METER2,
-    CAT_METER4,
-    CAT_STATES,
-    CAT_TEMP,
-)
 
 
 class AlfenDevice:

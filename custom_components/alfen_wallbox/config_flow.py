@@ -80,7 +80,6 @@ class AlfenFlowHandler(ConfigFlow, domain=DOMAIN):
     VERSION = 2
     CONNECTION_CLASS = CONN_CLASS_LOCAL_POLL
 
-
     @staticmethod
     @callback
     def async_get_options_flow(config_entry: ConfigEntry) -> AlfenOptionsFlowHandler:
