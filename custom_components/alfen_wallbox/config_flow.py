@@ -3,7 +3,7 @@ import asyncio
 import logging
 
 from aiohttp import ClientError
-from async_timeout import timeout
+#from async_timeout import timeout
 import voluptuous as vol
 
 from homeassistant import config_entries
@@ -49,7 +49,8 @@ class FlowHandler(config_entries.ConfigFlow):
                 password,
                 scan_interval
             )
-            with timeout(TIMEOUT):
+#            with timeout(TIMEOUT):
+            async with asyncio.timeout(TIMEOUT):
                 await device.init()
         except asyncio.TimeoutError:
             return self.async_abort(reason="device_timeout")
