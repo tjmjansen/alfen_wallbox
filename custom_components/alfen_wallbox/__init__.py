@@ -4,7 +4,7 @@ import asyncio
 import logging
 
 from aiohttp import ClientConnectionError
-from async_timeout import timeout
+#from async_timeout import timeout
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
@@ -83,7 +83,8 @@ async def alfen_setup(hass: HomeAssistant, host: str, name: str, username: str, 
     """Create a Alfen instance only once."""
 
     try:
-        with timeout(TIMEOUT):
+#        with timeout(TIMEOUT):
+        async with asyncio.timeout(TIMEOUT):
             device = AlfenDevice(hass, host, name, username, password, scan_interval)
             await device.init()
     except asyncio.TimeoutError:
