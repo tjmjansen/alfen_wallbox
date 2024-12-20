@@ -1,18 +1,16 @@
 """Support for Alfen Eve Proline binary sensors."""
-from dataclasses import dataclass
+
 import logging
+from dataclasses import dataclass
 from typing import Final
 
 from homeassistant.components.binary_sensor import (
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
 from .const import (
     ID,
     LICENSE_HIGH_POWER,
@@ -26,6 +24,7 @@ from .const import (
     LICENSE_SCN,
     VALUE,
 )
+from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,7 +38,9 @@ class AlfenBinaryDescriptionMixin:
 
 
 @dataclass
-class AlfenBinaryDescription(BinarySensorEntityDescription, AlfenBinaryDescriptionMixin):
+class AlfenBinaryDescription(
+    BinarySensorEntityDescription, AlfenBinaryDescriptionMixin
+):
     """Class to describe an Alfen binary sensor entity."""
 
 
@@ -98,19 +99,20 @@ ALFEN_BINARY_SENSOR_TYPES: Final[tuple[AlfenBinaryDescription, ...]] = (
         device_class=None,
         api_param=None,
     ),
-
 )
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AlfenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Alfen binary sensor entities from a config entry."""
-    device = hass.data[ALFEN_DOMAIN][entry.entry_id]
-    binaries = [AlfenBinarySensor(device, description)
-                for description in ALFEN_BINARY_SENSOR_TYPES]
+
+    binaries = [
+        AlfenBinarySensor(entry, description)
+        for description in ALFEN_BINARY_SENSOR_TYPES
+    ]
 
     async_add_entities(binaries)
 
@@ -120,65 +122,77 @@ class AlfenBinarySensor(AlfenEntity, BinarySensorEntity):
 
     entity_description: AlfenBinaryDescription
 
-    def __init__(self,
-                 device: AlfenDevice,
-                 description: AlfenBinaryDescription
-                 ) -> None:
+    def __init__(
+        self, entry: AlfenConfigEntry, description: AlfenBinaryDescription
+    ) -> None:
         """Initialize."""
-        super().__init__(device)
-        self._device = device
-        self._attr_name = f"{device.name} {description.name}"
-        self._attr_unique_id = f"{self._device.id}_{description.key}"
+        super().__init__(entry)
+        self._attr_name = f"{self.coordinator.device.name} {description.name}"
+        self._attr_unique_id = f"{self.coordinator.device.id}_{description.key}"
         self.entity_description = description
 
         # custom code for license
         if self.entity_description.api_param is None:
             # check if license is available
-            if '21A2_0' in self._device.properties:
-                if self._device.properties['21A2_0'][VALUE] == LICENSE_NONE:
+            if "21A2_0" in self.coordinator.device.properties:
+                if self.coordinator.device.properties["21A2_0"][VALUE] == LICENSE_NONE:
                     return
-            _LOGGER.debug(self._device.licenses)
+            _LOGGER.debug(self.coordinator.device.licenses)
             if self.entity_description.key == "license_scn":
-                self._attr_is_on = LICENSE_SCN in self._device.licenses
+                self._attr_is_on = LICENSE_SCN in self.coordinator.device.licenses
             if self.entity_description.key == "license_active_loadbalancing":
-                self._attr_is_on = LICENSE_SCN in self._device.licenses or LICENSE_LOAD_BALANCING_ACTIVE in self._device.licenses
+                self._attr_is_on = (
+                    LICENSE_SCN in self.coordinator.device.licenses
+                    or LICENSE_LOAD_BALANCING_ACTIVE in self.coordinator.device.licenses
+                )
             if self.entity_description.key == "license_static_loadbalancing":
-                self._attr_is_on = LICENSE_SCN in self._device.licenses or LICENSE_LOAD_BALANCING_STATIC in self._device.licenses or LICENSE_LOAD_BALANCING_STATIC in self._device.licenses
+                self._attr_is_on = (
+                    LICENSE_SCN in self.coordinator.device.licenses
+                    or LICENSE_LOAD_BALANCING_STATIC in self.coordinator.device.licenses
+                    or LICENSE_LOAD_BALANCING_STATIC in self.coordinator.device.licenses
+                )
             if self.entity_description.key == "license_high_power_sockets":
-                self._attr_is_on = LICENSE_HIGH_POWER in self._device.licenses
+                self._attr_is_on = (
+                    LICENSE_HIGH_POWER in self.coordinator.device.licenses
+                )
             if self.entity_description.key == "license_rfid_reader":
-                self._attr_is_on = LICENSE_RFID in self._device.licenses
+                self._attr_is_on = LICENSE_RFID in self.coordinator.device.licenses
             if self.entity_description.key == "license_personalized_display":
-                self._attr_is_on = LICENSE_PERSONALIZED_DISPLAY in self._device.licenses
+                self._attr_is_on = (
+                    LICENSE_PERSONALIZED_DISPLAY in self.coordinator.device.licenses
+                )
             if self.entity_description.key == "license_mobile_3G_4G":
-                self._attr_is_on = LICENSE_MOBILE in self._device.licenses
+                self._attr_is_on = LICENSE_MOBILE in self.coordinator.device.licenses
             if self.entity_description.key == "license_giro_e":
-                self._attr_is_on = LICENSE_PAYMENT_GIROE in self._device.licenses
-#            if self.entity_description.key == "license_qrcode":
-#                self._attr_is_on = LICENSE_PAYMENT_QRCODE in self._device.licenses
-#            if self.entity_description.key == "license_expose_smartmeterdata":
-#                self._attr_is_on = LICENSE_EXPOSE_SMARTMETERDATA in self._device.licenses
+                self._attr_is_on = (
+                    LICENSE_PAYMENT_GIROE in self.coordinator.device.licenses
+                )
+
+    #            if self.entity_description.key == "license_qrcode":
+    #                self._attr_is_on = LICENSE_PAYMENT_QRCODE in self.coordinator.device.licenses
+    #            if self.entity_description.key == "license_expose_smartmeterdata":
+    #                self._attr_is_on = LICENSE_EXPOSE_SMARTMETERDATA in self.coordinator.device.licenses
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
 
         if self.entity_description.api_param is not None:
-            for prop in self._device.properties:
+            for prop in self.coordinator.device.properties:
                 if prop[ID] == self.entity_description.api_param:
                     return True
             return False
-        else:
-            return True
+
+        return True
 
     @property
     def is_on(self) -> bool:
         """Return True if entity is on."""
 
         if self.entity_description.api_param is not None:
-            for prop in self._device.properties:
+            for prop in self.coordinator.device.properties:
                 if prop[ID] == self.entity_description.api_param:
                     return prop[VALUE] == 1
             return False
-        else:
-            return self._attr_is_on
+
+        return self._attr_is_on

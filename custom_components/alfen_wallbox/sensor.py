@@ -1,20 +1,18 @@
 """Support for Alfen Eve Single Proline Wallbox."""
-from dataclasses import dataclass
+
 import datetime
-from datetime import timedelta
-import logging
+from dataclasses import dataclass
 from typing import Final
 
-from homeassistant import const
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
     SensorEntityDescription,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
     PERCENTAGE,
+    SIGNAL_STRENGTH_DECIBELS,
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
     UnitOfEnergy,
@@ -29,13 +27,10 @@ from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
-from .const import ID, INTERVAL, SERVICE_REBOOT_WALLBOX, VALUE
+from .const import ID, SERVICE_REBOOT_WALLBOX, VALUE
+from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
-_LOGGER = logging.getLogger(__name__)
-SCAN_INTERVAL = timedelta(seconds=INTERVAL)
 
 @dataclass
 class AlfenSensorDescriptionMixin:
@@ -47,9 +42,7 @@ class AlfenSensorDescriptionMixin:
 
 
 @dataclass
-class AlfenSensorDescription(
-    SensorEntityDescription,  AlfenSensorDescriptionMixin
-):
+class AlfenSensorDescription(SensorEntityDescription, AlfenSensorDescriptionMixin):
     """Class to describe an Alfen sensor entity."""
 
 
@@ -136,7 +129,7 @@ DISPLAY_ERROR_DICT: Final[dict[int, str]] = {
     404: "Not able to lock cable. Please reconnect cable.",
     405: "Cable not supported. Please try connecting your cable again.",
     406: "No communication with vehicle. Please check your charging cable.",
-    407: "Not displayed"
+    407: "Not displayed",
 }
 
 MODE_3_STAT_DICT: Final[dict[int, str]] = {
@@ -150,13 +143,10 @@ MODE_3_STAT_DICT: Final[dict[int, str]] = {
     209: "STATE_D1",
     210: "STATE_D2",
     14: "STATE_E",
-    240: "STATE_F"
+    240: "STATE_F",
 }
 
-ALLOWED_PHASE_DICT: Final[dict[int, str]] = {
-    1: "1 Phase",
-    3: "3 Phases"
-}
+ALLOWED_PHASE_DICT: Final[dict[int, str]] = {1: "1 Phase", 3: "3 Phases"}
 
 POWER_STATES_DICT: Final[dict[int, str]] = {
     0: "Unknown",
@@ -236,8 +226,7 @@ MAIN_STATE_DICT: Final[dict[int, str]] = {
     52: "Charging Low Max Current Type E",
     53: "Invalid Card",
     54: "EV Connected Unauthorized",
-    55: "Wait for Disconnect PP"
-
+    55: "Wait for Disconnect PP",
 }
 
 MAIN_STATE__TMP_DICT: Final[dict[int, str]] = {
@@ -284,7 +273,7 @@ MAIN_STATE__TMP_DICT: Final[dict[int, str]] = {
     199: "Error Phase",
     200: "Error Internal RCD",
     201: "Error HF Switching",
-    202: "Error Low Supply Voltage"
+    202: "Error Low Supply Voltage",
 }
 
 OCPP_BOOT_NOTIFICATION_STATUS_DICT: Final[dict[int, str]] = {
@@ -319,7 +308,7 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         api_param="2060_0",
         unit=UnitOfTime.DAYS,
         round_digits=None,
-        state_class=SensorStateClass.TOTAL_INCREASING
+        state_class=SensorStateClass.TOTAL_INCREASING,
     ),
     AlfenSensorDescription(
         key="uptime_hours",
@@ -328,7 +317,7 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         api_param="2060_0",
         unit=UnitOfTime.HOURS,
         round_digits=None,
-        state_class=SensorStateClass.TOTAL_INCREASING
+        state_class=SensorStateClass.TOTAL_INCREASING,
     ),
     AlfenSensorDescription(
         key="last_modify_datetime",
@@ -493,7 +482,7 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         unit=UnitOfEnergy.KILO_WATT_HOUR,
         round_digits=None,
         state_class=SensorStateClass.TOTAL_INCREASING,
-        device_class=SensorDeviceClass.ENERGY
+        device_class=SensorDeviceClass.ENERGY,
     ),
     AlfenSensorDescription(
         key="temperature",
@@ -541,7 +530,6 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         unit=None,
         round_digits=None,
     ),
-
     AlfenSensorDescription(
         key="p1_measurements_1",
         name="P1 Meter Phase 1 Current",
@@ -721,10 +709,10 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         name="GPRS Signal",
         icon="mdi:antenna",
         api_param="2110_0",
-        unit=const.SIGNAL_STRENGTH_DECIBELS,
+        unit=SIGNAL_STRENGTH_DECIBELS,
         round_digits=None,
         state_class=SensorStateClass.MEASUREMENT,
-        device_class=SensorDeviceClass.SIGNAL_STRENGTH
+        device_class=SensorDeviceClass.SIGNAL_STRENGTH,
     ),
     # AlfenSensorDescription(
     #     key="comm_dhcp_address_2",
@@ -1055,7 +1043,6 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         state_class=SensorStateClass.MEASUREMENT,
         device_class=SensorDeviceClass.POWER,
     ),
-
     AlfenSensorDescription(
         key="smart_meter_current_l1",
         name="Smart Meter Current L1",
@@ -1132,7 +1119,6 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         unit=None,
         round_digits=None,
     ),
-
     AlfenSensorDescription(
         key="custom_transaction_socket_1_charging",
         name="Transaction Socket 1 Charging",
@@ -1165,8 +1151,6 @@ ALFEN_SENSOR_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
         unit=UnitOfTime.MINUTES,
         round_digits=0,
     ),
-
-
 )
 
 ALFEN_SENSOR_DUAL_SOCKET_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
@@ -1505,32 +1489,30 @@ ALFEN_SENSOR_DUAL_SOCKET_TYPES: Final[tuple[AlfenSensorDescription, ...]] = (
 
 
 async def async_setup_platform(
-        hass: HomeAssistant,
-        config: ConfigEntry,
-        async_add_entities: AddEntitiesCallback,
-        discovery_info=None):
+    hass: HomeAssistant,
+    config: AlfenConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+    discovery_info=None,
+):
     """Set up the Alfen sensor."""
-    pass
 
 
 async def async_setup_entry(
-        hass: HomeAssistant,
-        entry: ConfigEntry,
-        async_add_entities: AddEntitiesCallback):
+    hass: HomeAssistant,
+    entry: AlfenConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+):
     """Set up using config_entry."""
-    device: AlfenDevice
-    device = hass.data[ALFEN_DOMAIN][entry.entry_id]
-
-    sensors = [
-        AlfenSensor(device, description) for description in ALFEN_SENSOR_TYPES
-    ]
-
+    sensors = [AlfenSensor(entry, description) for description in ALFEN_SENSOR_TYPES]
 
     async_add_entities(sensors)
-    async_add_entities([AlfenMainSensor(device, ALFEN_SENSOR_TYPES[0])])
-    if device.number_socket == 2:
+    async_add_entities([AlfenMainSensor(entry, ALFEN_SENSOR_TYPES[0])])
+
+    coordinator = entry.runtime_data
+    if coordinator.device.number_socket == 2:
         sensors = [
-            AlfenSensor(device, description) for description in ALFEN_SENSOR_DUAL_SOCKET_TYPES
+            AlfenSensor(entry, description)
+            for description in ALFEN_SENSOR_DUAL_SOCKET_TYPES
         ]
         async_add_entities(sensors)
 
@@ -1548,19 +1530,19 @@ class AlfenMainSensor(AlfenEntity):
 
     entity_description: AlfenSensorDescription
 
-    def __init__(self, device: AlfenDevice, description: AlfenSensorDescription) -> None:
+    def __init__(
+        self, entry: AlfenConfigEntry, description: AlfenSensorDescription
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(device)
-        self._device = device
-        self._attr_name = f"{device.name}"
+        super().__init__(entry)
+
         self._sensor = "sensor"
         self.entity_description = description
-
 
     @property
     def unique_id(self):
         """Return a unique ID."""
-        return f"{self._device.id}-{self._sensor}"
+        return f"{self.coordinator.device.id}-{self._sensor}"
 
     @property
     def icon(self):
@@ -1570,32 +1552,32 @@ class AlfenMainSensor(AlfenEntity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 # exception
                 # status only from socket 1
-                if (prop[ID] == "2501_2"):
-                    return STATUS_DICT.get(prop[VALUE], 'Unknown')
+                if prop[ID] == "2501_2":
+                    return STATUS_DICT.get(prop[VALUE], "Unknown")
 
                 if self.entity_description.round_digits is not None:
                     return round(prop[VALUE], self.entity_description.round_digits)
 
                 return prop[VALUE]
 
-        return 'Unknown'
+        return "Unknown"
 
     async def async_reboot_wallbox(self):
         """Reboot the wallbox."""
-        await self._device.reboot_wallbox()
+        await self.coordinator.device.reboot_wallbox()
 
     async def async_update(self):
         """Update the sensor."""
-        await self._device.async_update()
+        await self.coordinator.device.async_update()
 
     @property
     def device_info(self):
         """Return a device description for device registry."""
-        return self._device.device_info
+        return self.coordinator.device.device_info
 
 
 class AlfenSensor(AlfenEntity, SensorEntity):
@@ -1603,13 +1585,13 @@ class AlfenSensor(AlfenEntity, SensorEntity):
 
     entity_description: AlfenSensorDescription
 
-    def __init__(self,
-                 device: AlfenDevice,
-                 description: AlfenSensorDescription) -> None:
+    def __init__(
+        self, entry: AlfenConfigEntry, description: AlfenSensorDescription
+    ) -> None:
         """Initialize the sensor."""
-        super().__init__(device)
-        self._device = device
-        self._attr_name = f"{device.name} {description.name}"
+        super().__init__(entry)
+
+        self._attr_name = f"{self.coordinator.device.name} {description.name}"
         self._attr_unique_id = f"{self._attr_unique_id}-{description.key}"
         self.entity_description = description
         if description.state_class is not None:
@@ -1621,7 +1603,7 @@ class AlfenSensor(AlfenEntity, SensorEntity):
 
     def _get_current_value(self) -> StateType | None:
         """Get the current value."""
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 return prop[VALUE]
         return None
@@ -1634,7 +1616,7 @@ class AlfenSensor(AlfenEntity, SensorEntity):
     @property
     def unique_id(self) -> str:
         """Return a unique ID."""
-        return f"{self._device.id}-{self.entity_description.key}"
+        return f"{self.coordinator.device.id}-{self.entity_description.key}"
 
     @property
     def name(self) -> str:
@@ -1656,8 +1638,10 @@ class AlfenSensor(AlfenEntity, SensorEntity):
         """Return the unit the value is expressed in."""
         return self.entity_description.unit
 
-    def _processTransactionKWh(self, socket:str, entity_description:AlfenSensorDescription):
-        if self._device.latest_tag is None:
+    def _processTransactionKWh(
+        self, socket: str, entity_description: AlfenSensorDescription
+    ):
+        if self.coordinator.device.latest_tag is None:
             return "Unknown"
         ## calculate the usage
         startkWh = None
@@ -1665,41 +1649,65 @@ class AlfenSensor(AlfenEntity, SensorEntity):
         stopkWh = None
         lastkWh = None
 
-        for (key,value) in self._device.latest_tag.items():
-            if key[0] == socket and key[1] ==  "start" and key[2] == "kWh":
+        for key, value in self.coordinator.device.latest_tag.items():
+            if key[0] == socket and key[1] == "start" and key[2] == "kWh":
                 startkWh = value
                 continue
-            if key[0] == socket and key[1] ==  "mv" and key[2] == "kWh":
+            if key[0] == socket and key[1] == "mv" and key[2] == "kWh":
                 mvkWh = value
                 continue
-            if key[0] == socket and key[1] ==  "stop" and key[2] == "kWh":
+            if key[0] == socket and key[1] == "stop" and key[2] == "kWh":
                 stopkWh = value
                 continue
-            if key[0] == socket and key[1] ==  "last_start" and key[2] == "kWh":
+            if key[0] == socket and key[1] == "last_start" and key[2] == "kWh":
                 lastkWh = value
                 continue
 
         # if the entity_key end with _charging, then we are calculating the charging
-        if startkWh is not None and mvkWh is not None and entity_description.key.endswith('_charging'):
+        if (
+            startkWh is not None
+            and mvkWh is not None
+            and entity_description.key.endswith("_charging")
+        ):
             # if we have stopkWh and it is higher then mvkWh, then we are not charging anymore and we should return 0
             if stopkWh is not None and float(stopkWh) >= float(mvkWh):
                 return 0
             value = round(float(mvkWh) - float(startkWh), 2)
             if entity_description.round_digits is not None:
-                return round(value, entity_description.round_digits if entity_description.round_digits > 0 else None)
+                return round(
+                    value,
+                    (
+                        entity_description.round_digits
+                        if entity_description.round_digits > 0
+                        else None
+                    ),
+                )
             return value
 
         # if the entity_key end with _charged, then we are calculating the charged
-        if lastkWh is not None and stopkWh is not None and entity_description.key.endswith('_charged'):
+        if (
+            lastkWh is not None
+            and stopkWh is not None
+            and entity_description.key.endswith("_charged")
+        ):
             if float(stopkWh) >= float(lastkWh):
-                value =  round(float(stopkWh) - float(lastkWh), 2)
+                value = round(float(stopkWh) - float(lastkWh), 2)
                 if entity_description.round_digits is not None:
-                    return round(value, entity_description.round_digits if entity_description.round_digits > 0 else None)
+                    return round(
+                        value,
+                        (
+                            entity_description.round_digits
+                            if entity_description.round_digits > 0
+                            else None
+                        ),
+                    )
                 return value
-            return None
+        return None
 
-    def _processTransactionTime(self, socket:str, entity_description:AlfenSensorDescription):
-        if self._device.latest_tag is None:
+    def _processTransactionTime(
+        self, socket: str, entity_description: AlfenSensorDescription
+    ):
+        if self.coordinator.device.latest_tag is None:
             return "Unknown"
 
         startDate = None
@@ -1707,24 +1715,28 @@ class AlfenSensor(AlfenEntity, SensorEntity):
         stopDate = None
         lastDate = None
 
-        for (key,value) in self._device.latest_tag.items():
-            if key[0] == "socket 1" and key[1] ==  "start" and key[2] == "date":
+        for key, value in self.coordinator.device.latest_tag.items():
+            if key[0] == "socket 1" and key[1] == "start" and key[2] == "date":
                 startDate = value
                 continue
-            if key[0] == "socket 1" and key[1] ==  "mv" and key[2] == "date":
+            if key[0] == "socket 1" and key[1] == "mv" and key[2] == "date":
                 mvDate = value
                 continue
-            if key[0] == "socket 1" and key[1] ==  "stop" and key[2] == "date":
+            if key[0] == "socket 1" and key[1] == "stop" and key[2] == "date":
                 stopDate = value
                 continue
-            if key[0] == "socket 1" and key[1] ==  "last_start" and key[2] == "date":
+            if key[0] == "socket 1" and key[1] == "last_start" and key[2] == "date":
                 lastDate = value
                 continue
 
-        if startDate is not None and mvDate is not None and entity_description.key.endswith('_charging_time'):
-            startDate = datetime.datetime.strptime(startDate, '%Y-%m-%d %H:%M:%S')
-            mvDate = datetime.datetime.strptime(mvDate, '%Y-%m-%d %H:%M:%S')
-            stopDate = datetime.datetime.strptime(stopDate, '%Y-%m-%d %H:%M:%S')
+        if (
+            startDate is not None
+            and mvDate is not None
+            and entity_description.key.endswith("_charging_time")
+        ):
+            startDate = datetime.datetime.strptime(startDate, "%Y-%m-%d %H:%M:%S")
+            mvDate = datetime.datetime.strptime(mvDate, "%Y-%m-%d %H:%M:%S")
+            stopDate = datetime.datetime.strptime(stopDate, "%Y-%m-%d %H:%M:%S")
 
             # if there is a stopdate greater then startDate, then we are not charging anymore
             if stopDate is not None and stopDate > startDate:
@@ -1733,41 +1745,73 @@ class AlfenSensor(AlfenEntity, SensorEntity):
             # return the value in minutes
             value = round((mvDate - startDate).total_seconds() / 60, 2)
             if entity_description.round_digits is not None:
-                return round(value, entity_description.round_digits if entity_description.round_digits > 0 else None)
+                return round(
+                    value,
+                    (
+                        entity_description.round_digits
+                        if entity_description.round_digits > 0
+                        else None
+                    ),
+                )
             return value
 
-
-        if lastDate is not None and stopDate is not None and entity_description.key.endswith('_charged_time'):
-            lastDate = datetime.datetime.strptime(lastDate, '%Y-%m-%d %H:%M:%S')
-            stopDate = datetime.datetime.strptime(stopDate, '%Y-%m-%d %H:%M:%S')
+        if (
+            lastDate is not None
+            and stopDate is not None
+            and entity_description.key.endswith("_charged_time")
+        ):
+            lastDate = datetime.datetime.strptime(lastDate, "%Y-%m-%d %H:%M:%S")
+            stopDate = datetime.datetime.strptime(stopDate, "%Y-%m-%d %H:%M:%S")
 
             if stopDate < lastDate:
                 return None
             # return the value in minutes
             value = round((stopDate - lastDate).total_seconds() / 60, 2)
             if entity_description.round_digits is not None:
-                return round(value, entity_description.round_digits if entity_description.round_digits > 0 else None)
+                return round(
+                    value,
+                    (
+                        entity_description.round_digits
+                        if entity_description.round_digits > 0
+                        else None
+                    ),
+                )
             return value
+        return None
 
-    def _customTransactionCode(self, socker_number:int):
+    def _customTransactionCode(self, socker_number: int):
         if self.entity_description.key == f"custom_tag_socket_{socker_number}":
-            if self._device.latest_tag is None:
+            if self.coordinator.device.latest_tag is None:
                 return "No Tag"
-            for (key,value) in self._device.latest_tag.items():
-                if key[0] == f"socket {socker_number}" and key[1] ==  "start" and key[2] == "tag":
+            for key, value in self.coordinator.device.latest_tag.items():
+                if (
+                    key[0] == f"socket {socker_number}"
+                    and key[1] == "start"
+                    and key[2] == "tag"
+                ):
                     return value
             return "No Tag"
 
-        if self.entity_description.key in (f"custom_transaction_socket_{socker_number}_charging", f"custom_transaction_socket_{socker_number}_charged"):
-            value = self._processTransactionKWh(f"socket {socker_number}", self.entity_description)
+        if self.entity_description.key in (
+            f"custom_transaction_socket_{socker_number}_charging",
+            f"custom_transaction_socket_{socker_number}_charged",
+        ):
+            value = self._processTransactionKWh(
+                f"socket {socker_number}", self.entity_description
+            )
             if value is not None:
                 return value
 
-
-        if self.entity_description.key in [f"custom_transaction_socket_{socker_number}_charging_time", f"custom_transaction_socket_{socker_number}_charged_time"]:
-            value = self._processTransactionTime("socket " + str(socker_number), self.entity_description)
+        if self.entity_description.key in [
+            f"custom_transaction_socket_{socker_number}_charging_time",
+            f"custom_transaction_socket_{socker_number}_charged_time",
+        ]:
+            value = self._processTransactionTime(
+                "socket " + str(socker_number), self.entity_description
+            )
             if value is not None:
                 return value
+        return None
 
     @property
     def state(self) -> StateType:
@@ -1781,7 +1825,7 @@ class AlfenSensor(AlfenEntity, SensorEntity):
             current_l2 = None
             current_l3 = None
 
-            for prop in self._device.properties:
+            for prop in self.coordinator.device.properties:
                 if prop[ID] == "5221_3":
                     voltage_l1 = prop[VALUE]
                 if prop[ID] == "5221_4":
@@ -1805,19 +1849,30 @@ class AlfenSensor(AlfenEntity, SensorEntity):
                 if voltage_l3 is not None and current_l3 is not None:
                     return round(float(voltage_l3) * float(current_l3), 2)
             if self.entity_description.key == "smart_meter_total":
-                if voltage_l1 is not None and current_l1 is not None and voltage_l2 is not None and current_l2 is not None and voltage_l3 is not None and current_l3 is not None:
-                    return round((float(voltage_l1) * float(current_l1) + float(voltage_l2) * float(current_l2) + float(voltage_l3) * float(current_l3)), 2)
-
-
+                if (
+                    voltage_l1 is not None
+                    and current_l1 is not None
+                    and voltage_l2 is not None
+                    and current_l2 is not None
+                    and voltage_l3 is not None
+                    and current_l3 is not None
+                ):
+                    return round(
+                        (
+                            float(voltage_l1) * float(current_l1)
+                            + float(voltage_l2) * float(current_l2)
+                            + float(voltage_l3) * float(current_l3)
+                        ),
+                        2,
+                    )
 
         # Custom code for transaction and tag
-        for socketNr in [1,2]:
+        for socketNr in [1, 2]:
             value = self._customTransactionCode(socketNr)
             if value is not None:
                 return value
 
-
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 # some exception of return value
 
@@ -1825,8 +1880,8 @@ class AlfenSensor(AlfenEntity, SensorEntity):
                 if self.entity_description.api_param in ("3190_1", "3191_1"):
                     if prop[VALUE] == 28:
                         return "See error Number"
-                    else:
-                        return STATUS_DICT.get(prop[VALUE], 'Unknown')
+
+                    return STATUS_DICT.get(prop[VALUE], "Unknown")
 
                 # meter_reading from w to kWh
                 if self.entity_description.api_param in ("2221_22", "3221_22"):
@@ -1834,65 +1889,79 @@ class AlfenSensor(AlfenEntity, SensorEntity):
 
                 # Car PWM Duty cycle %
                 if self.entity_description.api_param == "2511_3":
-                    return round((prop[VALUE] / 100), self.entity_description.round_digits)
+                    return round(
+                        (prop[VALUE] / 100), self.entity_description.round_digits
+                    )
 
                 # change milliseconds to HH:MM:SS
                 if self.entity_description.key == "uptime":
-                    return str(datetime.timedelta(milliseconds=prop[VALUE])).split('.', maxsplit=1)[0]
+                    return str(datetime.timedelta(milliseconds=prop[VALUE])).split(
+                        ".", maxsplit=1
+                    )[0]
 
                 if self.entity_description.key == "uptime_hours":
                     result = 0
                     value = str(datetime.timedelta(milliseconds=prop[VALUE]))
-                    days = value.split(' day')
+                    days = value.split(" day")
                     if len(days) > 1:
                         result = int(days[0]) * 24
-                        hours = days[1].split(", ")[1].split(
-                            ':', maxsplit=1)[0]
+                        hours = days[1].split(", ")[1].split(":", maxsplit=1)[0]
                     else:
-                        hours = value.split(':', maxsplit=1)[0]
+                        hours = value.split(":", maxsplit=1)[0]
                     result += int(hours)
                     return result
 
                 # change milliseconds to d/m/y HH:MM:SS
                 if self.entity_description.api_param in ("2187_0", "2059_0"):
-                    return datetime.datetime.fromtimestamp(prop[VALUE] / 1000).strftime("%d/%m/%Y %H:%M:%S")
+                    return datetime.datetime.fromtimestamp(prop[VALUE] / 1000).strftime(
+                        "%d/%m/%Y %H:%M:%S"
+                    )
 
                 # Allowed phase 1 or Allowed Phase 2
-                if (self.entity_description.api_param == "312E_0") | (self.entity_description.api_param == "312F_0"):
-                    return ALLOWED_PHASE_DICT.get(prop[VALUE], 'Unknown')
+                if (self.entity_description.api_param == "312E_0") | (
+                    self.entity_description.api_param == "312F_0"
+                ):
+                    return ALLOWED_PHASE_DICT.get(prop[VALUE], "Unknown")
 
                 if self.entity_description.round_digits is not None:
                     return round(prop[VALUE], self.entity_description.round_digits)
 
                 # mode3_state
                 if self.entity_description.api_param in ("2501_4", "2502_4"):
-                    return MODE_3_STAT_DICT.get(prop[VALUE], 'Unknown')
+                    return MODE_3_STAT_DICT.get(prop[VALUE], "Unknown")
 
                 # Socket CPRO State
                 if self.entity_description.api_param in ("2501_3", "2502_3"):
-                    return POWER_STATES_DICT.get(prop[VALUE], 'Unknown')
+                    return POWER_STATES_DICT.get(prop[VALUE], "Unknown")
 
                 # Main CSM State
                 if self.entity_description.api_param in ("2501_1", "2502_1"):
-                    return MAIN_STATE_DICT.get(prop[VALUE], 'Unknown')
+                    return MAIN_STATE_DICT.get(prop[VALUE], "Unknown")
 
                 # OCPP Boot notification
-                if (self.entity_description.api_param == "3600_1"):
-                    return OCPP_BOOT_NOTIFICATION_STATUS_DICT.get(prop[VALUE], 'Unknown')
+                if self.entity_description.api_param == "3600_1":
+                    return OCPP_BOOT_NOTIFICATION_STATUS_DICT.get(
+                        prop[VALUE], "Unknown"
+                    )
 
                 # OCPP Boot notification
-                if (self.entity_description.api_param == "2540_0"):
-                    return MODBUS_CONNECTION_STATES_DICT.get(prop[VALUE], 'Unknown')
+                if self.entity_description.api_param == "2540_0":
+                    return MODBUS_CONNECTION_STATES_DICT.get(prop[VALUE], "Unknown")
 
                 # wallbox display message
                 if self.entity_description.api_param in ("3190_2", "3191_2"):
-                    return str(prop[VALUE]) + ': ' + DISPLAY_ERROR_DICT.get(prop[VALUE],  'Unknown')
+                    return (
+                        str(prop[VALUE])
+                        + ": "
+                        + DISPLAY_ERROR_DICT.get(prop[VALUE], "Unknown")
+                    )
 
                 # Status code
                 if self.entity_description.api_param in ("2501_2", "2502_2"):
-                    return STATUS_DICT.get(prop[VALUE], 'Unknown')
+                    return STATUS_DICT.get(prop[VALUE], "Unknown")
 
                 return prop[VALUE]
+        return None
 
     @property
     def unit_of_measurement(self) -> str:
@@ -1906,4 +1975,4 @@ class AlfenSensor(AlfenEntity, SensorEntity):
     @property
     def device_info(self) -> DeviceInfo:
         """Return a device description for device registry."""
-        return self._device.device_info
+        return self.coordinator.device.device_info

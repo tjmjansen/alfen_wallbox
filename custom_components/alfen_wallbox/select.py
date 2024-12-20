@@ -1,18 +1,14 @@
 """Alfen Wallbox Select Entities."""
+
 from dataclasses import dataclass
-import logging
 from typing import Final
 
 import voluptuous as vol
-
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
 from .const import (
     ID,
     SERVICE_DISABLE_RFID_AUTHORIZATION_MODE,
@@ -20,9 +16,8 @@ from .const import (
     SERVICE_SET_CURRENT_PHASE,
     VALUE,
 )
+from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -38,8 +33,7 @@ class AlfenSelectDescription(SelectEntityDescription, AlfenSelectDescriptionMixi
     """Class to describe an Alfen select entity."""
 
 
-CHARGING_MODE_DICT: Final[dict[str, int]] = {
-    "Disable": 0, "Comfort": 1, "Green": 2}
+CHARGING_MODE_DICT: Final[dict[str, int]] = {"Disable": 0, "Comfort": 1, "Green": 2}
 
 PHASE_ROTATION_DICT: Final[dict[str, str]] = {
     "L1": "L1",
@@ -53,25 +47,22 @@ PHASE_ROTATION_DICT: Final[dict[str, str]] = {
     "L3,L2,L1": "L3L2L1",
 }
 
-AUTH_MODE_DICT: Final[dict[str, int]] = {
-    "Plug and Charge": 0,
-    "RFID": 2
-}
+AUTH_MODE_DICT: Final[dict[str, int]] = {"Plug and Charge": 0, "RFID": 2}
 
 LOAD_BALANCE_MODE_DICT: Final[dict[str, int]] = {
     "Modbus TCP/IP": 0,
-    "DSMR4.x / SMR5.0 (P1)": 3
+    "DSMR4.x / SMR5.0 (P1)": 3,
 }
 
 LOAD_BALANCE_DATA_SOURCE_DICT: Final[dict[str, int]] = {
     "Meter": 0,
     "Meter + EMS Monitoring": 1,
-    "Energy Management System": 3
+    "Energy Management System": 3,
 }
 
 LOAD_BALANCE_RECEIVED_MEASUREMENTS_DICT: Final[dict[str, int]] = {
     "Exclude Charging Ev": 0,
-    "Include Charging Ev": 1
+    "Include Charging Ev": 1,
 }
 
 DISPLAY_LANGUAGE_DICT: Final[dict[str, str]] = {
@@ -98,23 +89,14 @@ ALLOWED_PHASE_DICT: Final[dict[str, int]] = {
     "3 Phases": 3,
 }
 
-PRIORITIES_DICT: Final[dict[str, int]] = {
-    "Disable": 0,
-    "1": 1,
-    "2": 2,
-    "3": 3,
-    "4": 4
-}
+PRIORITIES_DICT: Final[dict[str, int]] = {"Disable": 0, "1": 1, "2": 2, "3": 3, "4": 4}
 
 OPERATIVE_MODE_DICT: Final[dict[str, int]] = {
     "Operative": 0,
     "In-operative": 2,
 }
 
-GPRS_NETWORK_MODE_DICT: Final[dict[str, int]] = {
-    "Automatic": 0,
-    "Manual": 1
-}
+GPRS_NETWORK_MODE_DICT: Final[dict[str, int]] = {"Automatic": 0, "Manual": 1}
 
 GPRS_TECHNOLOGY_DICT: Final[dict[str, int]] = {
     "2G (GPRS)": 0,
@@ -131,7 +113,7 @@ DSMR_SMR_INTERFACE_DICT: Final[dict[str, int]] = {
 DIRECT_EXTERNAL_SUSPEND_SIGNAL: Final[dict[str, int]] = {
     "Not allowed": 0,
     "Allowed, suspend when closed": 1,
-    "Allowed, suspend when open": 2
+    "Allowed, suspend when open": 2,
 }
 
 SOCKET_TYPE_DICT: Final[dict[str, int]] = {
@@ -146,9 +128,9 @@ SOCKET_TYPE_DICT: Final[dict[str, int]] = {
 
 CAR_DISCONNECT_ACTION_DICT: Final[dict[str, int]] = {
     "Continue": 0,
-    'Abort Lock': 1,
-    'Abort Unlock': 2,
-    'Abort Unlock When Offline': 3,
+    "Abort Lock": 1,
+    "Abort Unlock": 2,
+    "Abort Unlock When Offline": 3,
 }
 
 ALFEN_SELECT_TYPES: Final[tuple[AlfenSelectDescription, ...]] = (
@@ -160,7 +142,6 @@ ALFEN_SELECT_TYPES: Final[tuple[AlfenSelectDescription, ...]] = (
         options_dict=CHARGING_MODE_DICT,
         api_param="3280_1",
     ),
-
     AlfenSelectDescription(
         key="lb_phase_connection",
         name="Load Balancing Phase Connection",
@@ -177,7 +158,6 @@ ALFEN_SELECT_TYPES: Final[tuple[AlfenSelectDescription, ...]] = (
         options_dict=AUTH_MODE_DICT,
         api_param="2126_0",
     ),
-
     AlfenSelectDescription(
         key="load_balancing_mode",
         name="Load Balancing Mode",
@@ -290,8 +270,6 @@ ALFEN_SELECT_TYPES: Final[tuple[AlfenSelectDescription, ...]] = (
         options_dict=CAR_DISCONNECT_ACTION_DICT,
         api_param="2137_0",
     ),
-
-
 )
 
 ALFEN_SELECT_DUAL_SOCKET_TYPES: Final[tuple[AlfenSelectDescription, ...]] = (
@@ -307,20 +285,22 @@ ALFEN_SELECT_DUAL_SOCKET_TYPES: Final[tuple[AlfenSelectDescription, ...]] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: AlfenConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Add Alfen Select from a config_entry"""
-    device: AlfenDevice
-    device = hass.data[ALFEN_DOMAIN][entry.entry_id]
-    selects = [AlfenSelect(device, description)
-               for description in ALFEN_SELECT_TYPES]
+
+    selects = [AlfenSelect(entry, description) for description in ALFEN_SELECT_TYPES]
 
     async_add_entities(selects)
 
-    if device.number_socket == 2:
-        numbers = [AlfenSelect(device, description)
-                   for description in ALFEN_SELECT_DUAL_SOCKET_TYPES]
-        async_add_entities(numbers)
+    # if device.number_socket == 2:
+    #     numbers = [
+    #         AlfenSelect(device, description)
+    #         for description in ALFEN_SELECT_DUAL_SOCKET_TYPES
+    #     ]
+    #     async_add_entities(numbers)
 
     platform = entity_platform.current_platform.get()
 
@@ -352,14 +332,13 @@ class AlfenSelect(AlfenEntity, SelectEntity):
     entity_description: AlfenSelectDescription
 
     def __init__(
-        self, device: AlfenDevice, description: AlfenSelectDescription
+        self, entry: AlfenConfigEntry, description: AlfenSelectDescription
     ) -> None:
         """Initialize."""
-        super().__init__(device)
-        self._device = device
-        self._attr_name = f"{device.name} {description.name}"
+        super().__init__(entry)
+        self._attr_name = f"{self.coordinator.device.name} {description.name}"
 
-        self._attr_unique_id = f"{self._device.id}_{description.key}"
+        self._attr_unique_id = f"{self.coordinator.device.id}_{description.key}"
         self._attr_options = description.options
         self.entity_description = description
         self.values_dict = {v: k for k, v in description.options_dict.items()}
@@ -369,7 +348,9 @@ class AlfenSelect(AlfenEntity, SelectEntity):
         """Change the selected option."""
 
         value = {v: k for k, v in self.values_dict.items()}[option]
-        await self._device.set_value(self.entity_description.api_param, value)
+        await self.coordinator.device.set_value(
+            self.entity_description.api_param, value
+        )
         self.async_write_ha_state()
 
     @property
@@ -380,10 +361,10 @@ class AlfenSelect(AlfenEntity, SelectEntity):
 
     def _get_current_option(self) -> str | None:
         """Return the current option."""
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 if self.entity_description.key == "ps_installation_max_allowed_phase":
-                    self._device.max_allowed_phases = prop[VALUE]
+                    self.coordinator.device.max_allowed_phases = prop[VALUE]
                 return prop[VALUE]
         return None
 
@@ -398,17 +379,17 @@ class AlfenSelect(AlfenEntity, SelectEntity):
 
     async def async_set_current_phase(self, phase):
         """Set the current phase."""
-        await self._device.set_current_phase(phase)
+        await self.coordinator.device.set_current_phase(phase)
         await self.async_select_option(phase)
 
     async def async_enable_rfid_auth_mode(self):
         """Enable RFID authorization mode."""
-        await self._device.set_rfid_auth_mode(True)
-        await self._device.set_value(self.entity_description.api_param, 2)
+        await self.coordinator.device.set_rfid_auth_mode(True)
+        await self.coordinator.device.set_value(self.entity_description.api_param, 2)
         self.async_write_ha_state()
 
     async def async_disable_rfid_auth_mode(self):
         """Disable RFID authorization mode."""
-        await self._device.set_rfid_auth_mode(False)
-        await self._device.set_value(self.entity_description.api_param, 0)
+        await self.coordinator.device.set_rfid_auth_mode(False)
+        await self.coordinator.device.set_value(self.entity_description.api_param, 0)
         self.async_write_ha_state()

@@ -1,9 +1,11 @@
 {
     "domain": "alfen_wallbox",
     "name": "Alfen Wallbox",
-    "version": "2.8.0",
-    "config_flow": true,    
+    "version": "2.9.0",
+    "config_flow": true,
     "documentation": "https://github.com/leeyuentuen/alfen_wallbox",
     "dependencies": [],
-    "codeowners": ["leeyuentuen"]
-  }
+    "codeowners": [
+        "leeyuentuen"
+    ]
+}

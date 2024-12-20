@@ -1,38 +1,24 @@
 """Support for Alfen Eve Proline Wallbox."""
-from dataclasses import dataclass
+
 import logging
+from dataclasses import dataclass
 from typing import Final
 
 import voluptuous as vol
-
-from homeassistant.components.number import (
-    NumberDeviceClass,
-    NumberEntity,
-    NumberEntityDescription,
-    NumberMode,
-)
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (
-    CURRENCY_EURO,
-    PERCENTAGE,
-    UnitOfElectricCurrent,
-    UnitOfPower,
-    UnitOfTime,
-)
+from homeassistant.components.number import (NumberDeviceClass, NumberEntity,
+                                             NumberEntityDescription,
+                                             NumberMode)
+from homeassistant.const import (CURRENCY_EURO, PERCENTAGE,
+                                 UnitOfElectricCurrent, UnitOfPower,
+                                 UnitOfTime)
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import config_validation as cv, entity_platform
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
-from .const import (
-    ID,
-    LICENSE_HIGH_POWER,
-    SERVICE_SET_COMFORT_POWER,
-    SERVICE_SET_CURRENT_LIMIT,
-    SERVICE_SET_GREEN_SHARE,
-    VALUE,
-)
+from .const import (ID, LICENSE_HIGH_POWER, SERVICE_SET_COMFORT_POWER,
+                    SERVICE_SET_CURRENT_LIMIT, SERVICE_SET_GREEN_SHARE, VALUE)
+from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
 
 _LOGGER = logging.getLogger(__name__)
@@ -338,7 +324,7 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=NumberMode.BOX,
         unit_of_measurement=CURRENCY_EURO,
         api_param="3262_2",
-        round_digits=2
+        round_digits=2,
     ),
     AlfenNumberDescription(
         key="price_price_per_kwh",
@@ -353,7 +339,7 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=NumberMode.BOX,
         unit_of_measurement=CURRENCY_EURO,
         api_param="3262_3",
-        round_digits=2
+        round_digits=2,
     ),
     AlfenNumberDescription(
         key="price_price_per_minute",
@@ -368,7 +354,7 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=NumberMode.BOX,
         unit_of_measurement=CURRENCY_EURO,
         api_param="3262_4",
-        round_digits=2
+        round_digits=2,
     ),
     AlfenNumberDescription(
         key="price_price_other",
@@ -383,7 +369,7 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=NumberMode.BOX,
         unit_of_measurement=CURRENCY_EURO,
         api_param="3262_6",
-        round_digits=2
+        round_digits=2,
     ),
     AlfenNumberDescription(
         key="ev_disconnection_timeout",
@@ -398,9 +384,8 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=None,
         unit_of_measurement=UnitOfTime.SECONDS,
         api_param="2136_0",
-        round_digits=None
+        round_digits=None,
     ),
-
     AlfenNumberDescription(
         key="ev_non_charging_report_threshold",
         name="Car Time to Report Not Charging (s)",
@@ -414,9 +399,8 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=None,
         unit_of_measurement=UnitOfTime.SECONDS,
         api_param="2184_0",
-        round_digits=None
+        round_digits=None,
     ),
-
     AlfenNumberDescription(
         key="ev_auto_stop_transaction_time",
         name="Car Time to Unlock Not Charging (s)",
@@ -430,7 +414,7 @@ ALFEN_NUMBER_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
         custom_mode=None,
         unit_of_measurement=UnitOfTime.SECONDS,
         api_param="2168_0",
-        round_digits=None
+        round_digits=None,
     ),
     AlfenNumberDescription(
         key="main_external_max_current_socket_1",
@@ -469,19 +453,21 @@ ALFEN_NUMBER_DUAL_SOCKET_TYPES: Final[tuple[AlfenNumberDescription, ...]] = (
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
+    hass: HomeAssistant,
+    entry: AlfenConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Alfen select entities from a config entry."""
-    device: AlfenDevice
-    device = hass.data[ALFEN_DOMAIN][entry.entry_id]
-    numbers = [AlfenNumber(device, description)
-               for description in ALFEN_NUMBER_TYPES]
+    numbers = [AlfenNumber(entry, description) for description in ALFEN_NUMBER_TYPES]
 
     async_add_entities(numbers)
 
-    if device.number_socket == 2:
-        numbers = [AlfenNumber(device, description)
-                   for description in ALFEN_NUMBER_DUAL_SOCKET_TYPES]
+    coordinator = entry.runtime_data
+    if coordinator.device.number_socket == 2:
+        numbers = [
+            AlfenNumber(entry, description)
+            for description in ALFEN_NUMBER_DUAL_SOCKET_TYPES
+        ]
         async_add_entities(numbers)
 
     platform = entity_platform.current_platform.get()
@@ -521,18 +507,19 @@ class AlfenNumber(AlfenEntity, NumberEntity):
 
     def __init__(
         self,
-        device: AlfenDevice,
+        entry: AlfenConfigEntry,
         description: AlfenNumberDescription,
     ) -> None:
         """Initialize the Alfen Number entity."""
-        super().__init__(device)
-        self._device = device
+        super().__init__(entry)
         self._attr_name = f"{description.name}"
-        self._attr_unique_id = f"{self._device.id}_{description.key}"
+        self._attr_unique_id = f"{self.coordinator.device.id}_{description.key}"
         self._attr_assumed_state = description.assumed_state
         self._attr_device_class = description.device_class
         self._attr_icon = description.icon
-        if description.custom_mode is None:  # issue with pre Home Assistant Core 2023.6 versions
+        if (
+            description.custom_mode is None
+        ):  # issue with pre Home Assistant Core 2023.6 versions
             self._attr_mode = NumberMode.SLIDER
         else:
             self._attr_mode = description.custom_mode
@@ -550,11 +537,9 @@ class AlfenNumber(AlfenEntity, NumberEntity):
             self._attr_native_step = description.native_step
 
         # override the amps and set them on 32A if there is a license for it
-        override_amps_api_key = [
-            '2068_0', '2129_0', '2062_0', '3129_0'
-        ]
+        override_amps_api_key = ["2068_0", "2129_0", "2062_0", "3129_0"]
         # check if device licenses has the high power socket license
-        if LICENSE_HIGH_POWER in self._device.licenses:
+        if LICENSE_HIGH_POWER in self.coordinator.device.licenses:
             if description.api_param in override_amps_api_key:
                 self._attr_max_value = 40
                 self._attr_native_max_value = 40
@@ -567,26 +552,32 @@ class AlfenNumber(AlfenEntity, NumberEntity):
     async def async_set_native_value(self, value: float) -> None:
         """Update the current value."""
         if self.entity_description.round_digits is not None:
-            await self._device.set_value(self.entity_description.api_param, round(float(value), self.entity_description.round_digits))
+            await self.coordinator.device.set_value(
+                self.entity_description.api_param,
+                round(float(value), self.entity_description.round_digits),
+            )
         else:
-            await self._device.set_value(self.entity_description.api_param, int(value))
+            await self.coordinator.device.set_value(
+                self.entity_description.api_param, int(value)
+            )
         self._set_current_option()
 
     def _get_current_option(self) -> str | None:
         """Return the current option."""
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
-                _LOGGER.debug("%s Value: %s",
-                              self.entity_description.name, prop[VALUE])
+                _LOGGER.debug("%s Value: %s", self.entity_description.name, prop[VALUE])
 
                 if self.entity_description.round_digits is not None:
                     return round(prop[VALUE], self.entity_description.round_digits)
 
                 # change comfort level depends on max allowed phase
                 if self.entity_description.key == "lb_solar_charging_comfort_level":
-                    if self._device.max_allowed_phases == 3:
+                    if self.coordinator.device.max_allowed_phases == 3:
                         self._attr_max_value = self.entity_description.native_max_value
-                        self._attr_native_max_value = self.entity_description.native_max_value
+                        self._attr_native_max_value = (
+                            self.entity_description.native_max_value
+                        )
                     else:
                         self._attr_max_value = 3300
                         self._attr_native_max_value = 3300
@@ -601,17 +592,17 @@ class AlfenNumber(AlfenEntity, NumberEntity):
 
     async def async_set_current_limit(self, limit):
         """Set the current limit."""
-        await self._device.set_current_limit(limit)
+        await self.coordinator.device.set_current_limit(limit)
         self._set_current_option()
 
     async def async_set_green_share(self, value):
         """Set the green share."""
-        await self._device.set_green_share(value)
+        await self.coordinator.device.set_green_share(value)
         self._set_current_option()
 
     async def async_set_comfort_power(self, value):
         """Set the comfort power."""
-        await self._device.set_comfort_power(value)
+        await self.coordinator.device.set_comfort_power(value)
         self._set_current_option()
 
     async def async_update(self):

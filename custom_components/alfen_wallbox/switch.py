@@ -1,24 +1,21 @@
+"""Support for Alfen Eve Single Proline Wallbox."""
+
 from dataclasses import dataclass
-import logging
 from typing import Any, Final
 
 from homeassistant.components.switch import SwitchEntity, SwitchEntityDescription
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from . import DOMAIN as ALFEN_DOMAIN
-from .alfen import AlfenDevice
 from .const import (
     ID,
     SERVICE_DISABLE_PHASE_SWITCHING,
     SERVICE_ENABLE_PHASE_SWITCHING,
     VALUE,
 )
+from .coordinator import AlfenConfigEntry
 from .entity import AlfenEntity
-
-_LOGGER = logging.getLogger(__name__)
 
 
 @dataclass
@@ -79,13 +76,15 @@ ALFEN_BINARY_SENSOR_TYPES: Final[tuple[AlfenSwitchDescription, ...]] = (
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: AlfenConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Alfen switch entities from a config entry."""
-    device = hass.data[ALFEN_DOMAIN][entry.entry_id]
-    switches = [AlfenSwitchSensor(device, description)
-                for description in ALFEN_BINARY_SENSOR_TYPES]
+
+    switches = [
+        AlfenSwitchSensor(entry, description)
+        for description in ALFEN_BINARY_SENSOR_TYPES
+    ]
 
     async_add_entities(switches)
 
@@ -109,21 +108,20 @@ class AlfenSwitchSensor(AlfenEntity, SwitchEntity):
 
     entity_description: AlfenSwitchDescription
 
-    def __init__(self,
-                 device: AlfenDevice,
-                 description: AlfenSwitchDescription
-                 ) -> None:
+    def __init__(
+        self, entry: AlfenConfigEntry, description: AlfenSwitchDescription
+    ) -> None:
         """Initialize."""
-        super().__init__(device)
-        self._device = device
-        self._attr_name = f"{device.name} {description.name}"
-        self._attr_unique_id = f"{self._device.id}_{description.key}"
+        super().__init__(entry)
+
+        self._attr_name = f"{self.coordinator.device.name} {description.name}"
+        self._attr_unique_id = f"{self.coordinator.device.id}_{description.key}"
         self.entity_description = description
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 return True
         return False
@@ -131,7 +129,7 @@ class AlfenSwitchSensor(AlfenEntity, SwitchEntity):
     @property
     def is_on(self) -> bool:
         """Return True if entity is on."""
-        for prop in self._device.properties:
+        for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 return prop[VALUE] == 1
 
@@ -140,20 +138,20 @@ class AlfenSwitchSensor(AlfenEntity, SwitchEntity):
     async def async_turn_on(self, **kwargs: Any) -> None:
         """Turn the light on."""
         # Do the turning on.
-        await self._device.set_value(self.entity_description.api_param, 1)
-        await self._device.async_update()
+        await self.coordinator.device.set_value(self.entity_description.api_param, 1)
+        await self.coordinator.device.async_update()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the entity off."""
-        await self._device.set_value(self.entity_description.api_param, 0)
-        await self._device.async_update()
+        await self.coordinator.device.set_value(self.entity_description.api_param, 0)
+        await self.coordinator.device.async_update()
 
     async def async_enable_phase_switching(self):
         """Enable phase switching."""
-        await self._device.set_phase_switching(True)
+        await self.coordinator.device.set_phase_switching(True)
         await self.async_turn_on()
 
     async def async_disable_phase_switching(self):
         """Disable phase switching."""
-        await self._device.set_phase_switching(False)
+        await self.coordinator.device.set_phase_switching(False)
         await self.async_turn_off()

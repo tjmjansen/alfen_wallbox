@@ -1,27 +1,27 @@
 """Base entity for Alfen Wallbox integration."""
-import logging
 
 from homeassistant.helpers.entity import DeviceInfo, Entity
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .alfen import AlfenDevice
 from .const import DOMAIN as ALFEN_DOMAIN
+from .coordinator import AlfenConfigEntry, AlfenCoordinator
 
-_LOGGER = logging.getLogger(__name__)
 
-
-class AlfenEntity(Entity):
+class AlfenEntity(CoordinatorEntity[AlfenCoordinator], Entity):
     """Define a base Alfen entity."""
 
-    def __init__(self, device: AlfenDevice) -> None:
+    def __init__(self, entry: AlfenConfigEntry) -> None:
         """Initialize the Alfen entity."""
-        self._device = device
+
+        super().__init__(entry)
+        self.coordinator = entry.runtime_data
 
         self._attr_device_info = DeviceInfo(
-            identifiers={(ALFEN_DOMAIN, self._device.name)},
+            identifiers={(ALFEN_DOMAIN, self.coordinator.device.name)},
             manufacturer="Alfen",
-            model=self._device.info.model,
-            name=device.name,
-            sw_version=self._device.info.firmware_version,
+            model=self.coordinator.device.info.model,
+            name=self.coordinator.device.name,
+            sw_version=self.coordinator.device.info.firmware_version,
         )
 
     async def async_added_to_hass(self) -> None:
