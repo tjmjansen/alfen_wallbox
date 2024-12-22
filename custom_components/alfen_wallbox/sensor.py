@@ -1,8 +1,7 @@
 """Support for Alfen Eve Single Proline Wallbox."""
 
-import datetime
-
 from dataclasses import dataclass
+import datetime
 from typing import Final
 
 from homeassistant.components.sensor import (

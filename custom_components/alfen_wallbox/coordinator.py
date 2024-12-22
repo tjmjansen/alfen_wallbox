@@ -1,23 +1,32 @@
 """Class representing a Alfen Wallbox update coordinator."""
 
 import asyncio
-import logging
 from datetime import timedelta
+import logging
 
-import async_timeout
 from aiohttp import ClientConnectionError
+
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import (CONF_HOST, CONF_NAME, CONF_PASSWORD,
-                                 CONF_SCAN_INTERVAL, CONF_TIMEOUT,
-                                 CONF_USERNAME)
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_SCAN_INTERVAL,
+    CONF_TIMEOUT,
+    CONF_USERNAME,
+)
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
-from homeassistant.helpers.update_coordinator import (DataUpdateCoordinator,
-                                                      UpdateFailed)
+from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 from .alfen import AlfenDevice
-from .const import (CONF_REFRESH_CATEGORIES, DEFAULT_REFRESH_CATEGORIES,
-                    DEFAULT_SCAN_INTERVAL, DEFAULT_TIMEOUT, DOMAIN)
+from .const import (
+    CONF_REFRESH_CATEGORIES,
+    DEFAULT_REFRESH_CATEGORIES,
+    DEFAULT_SCAN_INTERVAL,
+    DEFAULT_TIMEOUT,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,6 +51,7 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
         self.hass = hass
         self.device = None
         self.timeout = self.entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
+        self.hass.async_create_task(self._async_setup())
 
     async def _async_setup(self):
         """Set up the coordinator."""
@@ -61,12 +71,12 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
     async def _async_update_data(self) -> None:
         """Fetch data from API endpoint."""
 
-        async with async_timeout.timeout(self.timeout):
-            if not await self.device.async_update():
-                raise UpdateFailed("Error updating")
+        await asyncio.wait_for(self.device.async_update(), timeout=self.timeout)
+        if not await self.device.async_update():
+            raise UpdateFailed("Error updating")
 
-            self.device.get_number_of_socket()
-            self.device.get_licenses()
+        self.device.get_number_of_socket()
+        self.device.get_licenses()
 
     async def async_connect(self) -> bool:
         """Connect to the API endpoint."""
@@ -91,7 +101,6 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
                 str(e),
             )
             return False
-
 
 async def options_update_listener(self, entry: AlfenConfigEntry):
     """Handle options update."""

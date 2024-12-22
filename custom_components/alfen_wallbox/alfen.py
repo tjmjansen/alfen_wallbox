@@ -3,10 +3,8 @@
 import datetime
 import json
 import logging
-import ssl
 
 from aiohttp import ClientResponse, ClientSession
-from urllib3 import disable_warnings
 
 from .const import (
     ALFEN_PRODUCT_MAP,
@@ -76,15 +74,6 @@ class AlfenDevice:
         self.static_properties = []
         self.get_static_properties = True
 
-        # disable_warnings()
-
-        # # Default ciphers needed as of python 3.10
-        # context = ssl.create_default_context()
-        # context.set_ciphers("DEFAULT")
-        # context.check_hostname = False
-        # context.verify_mode = ssl.CERT_NONE
-        # self.ssl = context
-
     async def init(self) -> bool:
         """Initialize the Alfen API."""
         result = await self.get_info()
@@ -112,7 +101,8 @@ class AlfenDevice:
 
     async def get_info(self) -> bool:
         """Get info from the API."""
-        response = await self._session.get(url=self.__get_url(INFO))  # , ssl=self.ssl)
+
+        response = await self._session.get(url=self.__get_url(INFO))
         _LOGGER.debug("Response %s", str(response))
 
         if response.status == 200:

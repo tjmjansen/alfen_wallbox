@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Final
 
 import voluptuous as vol
+
 from homeassistant.components.select import SelectEntity, SelectEntityDescription
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import entity_platform
