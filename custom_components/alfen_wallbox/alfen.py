@@ -180,7 +180,6 @@ class AlfenDevice:
                 json=payload,
                 headers=POST_HEADER_JSON,
                 timeout=DEFAULT_TIMEOUT,
-                # ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST with login")
@@ -196,7 +195,7 @@ class AlfenDevice:
 
             _LOGGER.error("JSONDecodeError error on POST %s", str(e))
         except TimeoutError as e:
-            _LOGGER.warning("Timeout on POST")
+            _LOGGER.warning("Timeout on POST %s", str(e))
         except Exception as e:  # pylint: disable=broad-except
             _LOGGER.error("Unexpected error on POST %s", str(e))
 
@@ -207,10 +206,7 @@ class AlfenDevice:
     ) -> ClientResponse | None:
         """Send a GET request to the API."""
         try:
-            async with self._session.get(
-                url,
-                timeout=DEFAULT_TIMEOUT,  # , ssl=self.ssl
-            ) as response:
+            async with self._session.get(url, timeout=DEFAULT_TIMEOUT) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("GET with login")
                     await self.login()
@@ -266,9 +262,7 @@ class AlfenDevice:
                 url=self.__get_url(PROP),
                 json={api_param: {ID: api_param, VALUE: str(value)}},
                 headers=POST_HEADER_JSON,
-                timeout=DEFAULT_TIMEOUT,
-                # ,
-                # ssl=self.ssl,
+                timeout=DEFAULT_TIMEOUT
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST(Update) with login")
