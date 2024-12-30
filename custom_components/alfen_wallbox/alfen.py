@@ -3,6 +3,7 @@
 import datetime
 import json
 import logging
+import ssl
 
 from aiohttp import ClientResponse, ClientSession
 
@@ -48,6 +49,7 @@ class AlfenDevice:
         username: str,
         password: str,
         category_options: list,
+        ssl: ssl.SSLContext,
     ) -> None:
         """Init."""
 
@@ -71,6 +73,7 @@ class AlfenDevice:
         self.latest_tag = None
         self.transaction_offset = 0
         self.transaction_counter = 0
+        self.ssl = ssl
         self.static_properties = []
         self.get_static_properties = True
 
@@ -102,7 +105,7 @@ class AlfenDevice:
     async def get_info(self) -> bool:
         """Get info from the API."""
 
-        response = await self._session.get(url=self.__get_url(INFO))
+        response = await self._session.get(url=self.__get_url(INFO), ssl=self.ssl)
         _LOGGER.debug("Response %s", str(response))
 
         if response.status == 200:
@@ -180,6 +183,7 @@ class AlfenDevice:
                 json=payload,
                 headers=POST_HEADER_JSON,
                 timeout=DEFAULT_TIMEOUT,
+                ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST with login")
@@ -206,7 +210,9 @@ class AlfenDevice:
     ) -> ClientResponse | None:
         """Send a GET request to the API."""
         try:
-            async with self._session.get(url, timeout=DEFAULT_TIMEOUT) as response:
+            async with self._session.get(
+                url, timeout=DEFAULT_TIMEOUT, ssl=self.ssl
+            ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("GET with login")
                     await self.login()
@@ -262,7 +268,8 @@ class AlfenDevice:
                 url=self.__get_url(PROP),
                 json={api_param: {ID: api_param, VALUE: str(value)}},
                 headers=POST_HEADER_JSON,
-                timeout=DEFAULT_TIMEOUT
+                timeout=DEFAULT_TIMEOUT,
+                ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
                     _LOGGER.debug("POST(Update) with login")
