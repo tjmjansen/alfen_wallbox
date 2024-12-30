@@ -3,7 +3,7 @@
 import asyncio
 from datetime import timedelta
 import logging
-import ssl
+from ssl import CERT_NONE
 
 from aiohttp import ClientConnectionError
 
@@ -19,6 +19,7 @@ from homeassistant.const import (
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+from homeassistant.util.ssl import get_default_context
 
 from .alfen import AlfenDevice
 from .const import (
@@ -59,13 +60,11 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
         session = async_get_clientsession(self.hass, verify_ssl=False)
 
         # Default ciphers needed as of python 3.10
-        context = ssl.create_default_context()
-        # todo: fix Detected blocking call to load_default_certs with
-        # context = await self.create_ssl_context()
+        context = get_default_context()
 
         context.set_ciphers("DEFAULT")
         context.check_hostname = False
-        context.verify_mode = ssl.CERT_NONE
+        context.verify_mode = CERT_NONE
 
         self.device = AlfenDevice(
             session,
@@ -78,11 +77,6 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
         )
         if not await self.async_connect():
             raise UpdateFailed("Error communicating with API")
-
-    #    async def create_ssl_context(self) -> ssl.SSLContext:
-    #        """Create and return an SSL context."""
-    #        loop = asyncio.get_running_loop()
-    #        return await loop.run_in_executor(None, ssl.create_default_context)
 
     async def _async_update_data(self) -> None:
         """Fetch data from API endpoint."""
