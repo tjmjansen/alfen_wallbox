@@ -113,14 +113,6 @@ class AlfenFlowHandler(ConfigFlow, domain=DOMAIN):
             if entry.data[CONF_HOST] == user_input[CONF_HOST]:
                 return self.async_abort(reason="already_configured")
 
-        # if not await client.async_update() or client.serial is None:
-        #     self._errors["base"] = "cannot_connect"
-        #     LOGGER.error("Cannot connect")
-        #     return None
-
-        # await self.async_set_unique_id(client.serial)
-        # self._abort_if_unique_id_configured()
-
         return self.async_create_entry(
             title=user_input[CONF_HOST],
             data={
