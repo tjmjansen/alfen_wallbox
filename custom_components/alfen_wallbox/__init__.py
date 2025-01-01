@@ -94,6 +94,8 @@ async def async_unload_entry(
     """Unload a config entry."""
     _LOGGER.debug("async_unload_entry: %s", config_entry)
 
+    coordinator = config_entry.runtime_data
+    await coordinator.device.logout()
     return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
 
