@@ -322,7 +322,7 @@ class AlfenDevice:
                 # It's better to break completely, otherwise we can provide partial data in self.properties.
                 _LOGGER.debug("Returning earlier after %s attempts", str(attempt))
                 self.properties = []
-                return False
+                break
 
         _LOGGER.debug("Properties %s", str(properties))
         runtime = datetime.datetime.now() - tx_start
