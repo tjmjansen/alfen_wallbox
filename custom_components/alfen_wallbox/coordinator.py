@@ -1,6 +1,6 @@
 """Class representing a Alfen Wallbox update coordinator."""
 
-import asyncio
+from asyncio import timeout
 from datetime import timedelta
 import logging
 from ssl import CERT_NONE
@@ -53,7 +53,6 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
         self.hass = hass
         self.device = None
         self.timeout = self.entry.options.get(CONF_TIMEOUT, DEFAULT_TIMEOUT)
-        self.hass.async_create_task(self._async_setup())
 
     async def _async_setup(self):
         """Set up the coordinator."""
@@ -81,18 +80,18 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
     async def _async_update_data(self) -> None:
         """Fetch data from API endpoint."""
 
-        await asyncio.wait_for(self.device.async_update(), timeout=self.timeout)
-        if not await self.device.async_update():
-            raise UpdateFailed("Error updating")
+        async with timeout(self.timeout):
+            if not await self.device.async_update():
+                raise UpdateFailed("Error updating")
 
-        self.device.get_number_of_socket()
-        self.device.get_licenses()
+            self.device.get_number_of_socket()
+            self.device.get_licenses()
 
     async def async_connect(self) -> bool:
         """Connect to the API endpoint."""
 
         try:
-            async with asyncio.timeout(self.timeout):
+            async with timeout(self.timeout):
                 return await self.device.init()
         except TimeoutError:
             _LOGGER.debug("Connection to %s timed out", self.entry.data[CONF_HOST])
@@ -104,7 +103,7 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
                 str(e),
             )
             return False
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error(
                 "Unexpected error creating device %s %s",
                 self.entry.data[CONF_HOST],

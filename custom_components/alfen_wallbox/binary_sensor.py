@@ -141,29 +141,30 @@ class AlfenBinarySensor(AlfenEntity, BinarySensorEntity):
             _LOGGER.debug(self.coordinator.device.licenses)
             if self.entity_description.key == "license_scn":
                 self._attr_is_on = LICENSE_SCN in self.coordinator.device.licenses
-            elif self.entity_description.key == "license_active_loadbalancing":
+            if self.entity_description.key == "license_active_loadbalancing":
                 self._attr_is_on = (
                     LICENSE_SCN in self.coordinator.device.licenses
                     or LICENSE_LOAD_BALANCING_ACTIVE in self.coordinator.device.licenses
                 )
-            elif self.entity_description.key == "license_static_loadbalancing":
+            if self.entity_description.key == "license_static_loadbalancing":
                 self._attr_is_on = (
                     LICENSE_SCN in self.coordinator.device.licenses
                     or LICENSE_LOAD_BALANCING_STATIC in self.coordinator.device.licenses
+                    or LICENSE_LOAD_BALANCING_STATIC in self.coordinator.device.licenses
                 )
-            elif self.entity_description.key == "license_high_power_sockets":
+            if self.entity_description.key == "license_high_power_sockets":
                 self._attr_is_on = (
                     LICENSE_HIGH_POWER in self.coordinator.device.licenses
                 )
-            elif self.entity_description.key == "license_rfid_reader":
+            if self.entity_description.key == "license_rfid_reader":
                 self._attr_is_on = LICENSE_RFID in self.coordinator.device.licenses
-            elif self.entity_description.key == "license_personalized_display":
+            if self.entity_description.key == "license_personalized_display":
                 self._attr_is_on = (
                     LICENSE_PERSONALIZED_DISPLAY in self.coordinator.device.licenses
                 )
-            elif self.entity_description.key == "license_mobile_3G_4G":
+            if self.entity_description.key == "license_mobile_3G_4G":
                 self._attr_is_on = LICENSE_MOBILE in self.coordinator.device.licenses
-            elif self.entity_description.key == "license_giro_e":
+            if self.entity_description.key == "license_giro_e":
                 self._attr_is_on = (
                     LICENSE_PAYMENT_GIROE in self.coordinator.device.licenses
                 )

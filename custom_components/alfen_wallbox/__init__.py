@@ -20,7 +20,6 @@ from .const import (
     DEFAULT_REFRESH_CATEGORIES,
     DEFAULT_SCAN_INTERVAL,
     DEFAULT_TIMEOUT,
-    DOMAIN,
 )
 from .coordinator import AlfenConfigEntry, AlfenCoordinator, options_update_listener
 
@@ -42,8 +41,6 @@ async def async_migrate_entry(
 ) -> bool:
     """Migrate old entry."""
     _LOGGER.debug("Migrating from version %s", config_entry.version)
-
-    hass.data.setdefault(DOMAIN, {})
 
     if config_entry.version == 1:
         scan_interval = config_entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
@@ -97,6 +94,8 @@ async def async_unload_entry(
     """Unload a config entry."""
     _LOGGER.debug("async_unload_entry: %s", config_entry)
 
+    coordinator = config_entry.runtime_data
+    await coordinator.device.logout()
     return await hass.config_entries.async_unload_platforms(config_entry, PLATFORMS)
 
 

@@ -198,9 +198,9 @@ class AlfenDevice:
                 return None
 
             _LOGGER.error("JSONDecodeError error on POST %s", str(e))
-        except TimeoutError as e:
-            _LOGGER.warning("Timeout on POST %s", str(e))
-        except Exception as e:  # pylint: disable=broad-except
+        except TimeoutError:
+            _LOGGER.warning("Timeout on POST")
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on POST %s", str(e))
 
         return None
@@ -224,10 +224,10 @@ class AlfenDevice:
                 else:
                     _resp = await response.text()
                 return _resp
-        except TimeoutError as e:
+        except TimeoutError:
             _LOGGER.warning("Timeout on GET")
             return None
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on GET %s", str(e))
             return None
 
@@ -244,8 +244,8 @@ class AlfenDevice:
                     PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE,
                 },
             )
-            _LOGGER.debug(f"Login response {response}")
-        except Exception as e:  # pylint: disable=broad-except
+            _LOGGER.debug("Login response %s", response)
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on LOGIN %s", str(e))
             return
 
@@ -255,7 +255,7 @@ class AlfenDevice:
         try:
             response = await self._post(cmd=LOGOUT, allowed_login=False)
             _LOGGER.debug("Logout response %s", str(response))
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on LOGOUT %s", str(e))
             return
 
@@ -277,7 +277,7 @@ class AlfenDevice:
                     return await self._update_value(api_param, value, False)
                 response.raise_for_status()
                 return response
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on UPDATE VALUE %s", str(e))
             return None
 
@@ -322,7 +322,7 @@ class AlfenDevice:
                 # It's better to break completely, otherwise we can provide partial data in self.properties.
                 _LOGGER.debug("Returning earlier after %s attempts", str(attempt))
                 self.properties = []
-                return False
+                break
 
         _LOGGER.debug("Properties %s", str(properties))
         runtime = datetime.datetime.now() - tx_start
@@ -478,7 +478,7 @@ class AlfenDevice:
         """Send a request to the API."""
         try:
             return await self.request(method, cmd, json_data)
-        except Exception as e:  # pylint: disable=broad-except
+        except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error async request %s", str(e))
             return None
 
