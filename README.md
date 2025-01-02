@@ -24,17 +24,13 @@ After installation, please reboot and add Alfen Wallbox device to your Home Assi
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=alfen_wallbox)
 
 <details>
+<summary><b><svg xmlns="http://www.w3.org/2000/svg" width="1em" height="1em" viewBox="0 0 24 24"><path fill="currentColor" d="m13.75 10.19l.63.13l4.17 2.08c.7.23 1.16.92 1.1 1.66v.26l-.9 6.12c-.06.43-.25.83-.6 1.11c-.31.3-.72.45-1.15.45h-6.88c-.49 0-.94-.18-1.27-.53L2.86 15.5l.9-1c.24-.25.62-.39.98-.37h.29L9 15V4.5a2 2 0 0 1 2-2a2 2 0 0 1 2 2v5.69z"></path></svg> Manual configuration steps</b></summary>
 
-<summary><i><h2 style="display:inline-block">Manual configuration steps</h2></i></summary>
-
-> In HACS, go to the Integrations section and add the custom repository via the 3 dot menu on the top right. Enter ```https://github.com/>> leeyuentuen/alfen_wallbox``` in the Repository field, choose the ```Integration``` category, then click add.\
-> Hit the big + at the bottom right and search for **Alfen Wallbox**. Click it, then click the download button.\
->
-> Clone or copy this repository and copy the folder 'custom_components/alfen_wallbox' into '<homeassistant config>/custom_components/alfen_wallbox'
->
-> Once installed the Alfen Wallbox integration can be configured via the Home Assistant integration interface
+> - In HACS, go to the Integrations section and add the custom repository via the 3 dot menu on the top right. Enter ```https://github.com/>> leeyuentuen/alfen_wallbox``` in the Repository field, choose the ```Integration``` category, then click add.
+Hit the big + at the bottom right and search for **Alfen Wallbox**. Click it, then click the download button.
+> - Clone or copy this repository and copy the folder 'custom_components/alfen_wallbox' into '<homeassistant config>/custom_components/alfen_wallbox'
+> - Once installed the Alfen Wallbox integration can be configured via the Home Assistant integration interface
 where you can enter the IP address of the device.
->
 </details>
 
 ### Home Assistant Energy Dashboard
