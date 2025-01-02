@@ -49,6 +49,16 @@ To locate a category, start by selecting all categories. Allow the integration t
 
 Reducing the number of selected categories will enhance the integration's update speed.
 
+## Simultaneous Use of the App and Integration
+The Alfen charger allows only one active login session at a time. This means the Alfen MyEve or Eve Connect app cannot be used concurrently with the Home Assistant integration.
+
+To manage this, the integration includes two buttons: HTTPS API Login and HTTPS API Logout.
+
+- To switch to the Alfen app: Click the Logout button in the Home Assistant integration, then use your preferred Alfen app.
+- To return to the integration: Click the Login button to reconnect the Home Assistant integration.
+
+The HTTPS API Login Status binary sensor shows the current state of the login session.
+
 ## Services
 Example of running in Services:
 Note; The name of the configured charging point is "wallbox" in these examples.
