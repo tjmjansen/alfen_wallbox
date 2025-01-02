@@ -5,6 +5,7 @@ import logging
 from typing import Final
 
 from homeassistant.components.binary_sensor import (
+    BinarySensorDeviceClass,
     BinarySensorEntity,
     BinarySensorEntityDescription,
 )
@@ -98,6 +99,12 @@ ALFEN_BINARY_SENSOR_TYPES: Final[tuple[AlfenBinaryDescription, ...]] = (
         key="license_giro_e",
         name="License Giro-e Payment",
         device_class=None,
+        api_param=None,
+    ),
+    AlfenBinaryDescription(
+        key="https_api_login_status",
+        name="HTTPS API Login Status",
+        device_class=BinarySensorDeviceClass.CONNECTIVITY,
         api_param=None,
     ),
 )
@@ -195,6 +202,9 @@ class AlfenBinarySensor(AlfenEntity, BinarySensorEntity):
                 if prop[ID] == self.entity_description.api_param:
                     return prop[VALUE] == 1
             return False
+
+        if self.entity_description.key == "https_api_login_status":
+            return self.coordinator.device.logged_in
 
         return self._attr_is_on
 
