@@ -3,7 +3,7 @@
 import datetime
 import json
 import logging
-import ssl
+from ssl import SSLContext
 
 from aiohttp import ClientResponse, ClientSession
 
@@ -49,13 +49,12 @@ class AlfenDevice:
         username: str,
         password: str,
         category_options: list,
-        ssl: ssl.SSLContext,
+        ssl: SSLContext,
     ) -> None:
         """Init."""
 
         self.host = host
         self.name = name
-        self._status = None
         self._session = session
         self.username = username
         self.category_options = category_options
@@ -76,6 +75,8 @@ class AlfenDevice:
         self.ssl = ssl
         self.static_properties = []
         self.get_static_properties = True
+        self.logged_in = False
+        self.last_updated = None
 
     async def init(self) -> bool:
         """Initialize the Alfen API."""
@@ -104,7 +105,6 @@ class AlfenDevice:
 
     async def get_info(self) -> bool:
         """Get info from the API."""
-
         response = await self._session.get(url=self.__get_url(INFO), ssl=self.ssl)
         _LOGGER.debug("Response %s", str(response))
 
@@ -126,11 +126,6 @@ class AlfenDevice:
         return False
 
     @property
-    def status(self) -> str:
-        """Return the status of the device."""
-        return self._status
-
-    @property
     def device_info(self) -> dict:
         """Return a device description for device registry."""
         return {
@@ -146,6 +141,7 @@ class AlfenDevice:
         if self.keep_logout:
             return True
 
+        self.last_updated = datetime.datetime.now()
         dynamic_properties = []
         self.properties = []
         if self.get_static_properties:
@@ -176,6 +172,9 @@ class AlfenDevice:
         self, cmd, payload=None, allowed_login=True
     ) -> ClientResponse | None:
         """Send a POST request to the API."""
+        if self.keep_logout:
+            return None
+
         try:
             _LOGGER.debug("Send Post Request")
             async with self._session.post(
@@ -186,6 +185,7 @@ class AlfenDevice:
                 ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
+                    self.logged_in = False
                     _LOGGER.debug("POST with login")
                     await self.login()
                     return await self._post(cmd, payload, False)
@@ -209,11 +209,15 @@ class AlfenDevice:
         self, url, allowed_login=True, json_decode=True
     ) -> ClientResponse | None:
         """Send a GET request to the API."""
+        if self.keep_logout:
+            return None
+
         try:
             async with self._session.get(
                 url, timeout=DEFAULT_TIMEOUT, ssl=self.ssl
             ) as response:
                 if response.status == 401 and allowed_login:
+                    self.logged_in = False
                     _LOGGER.debug("GET with login")
                     await self.login()
                     return await self._get(url, False)
@@ -244,6 +248,9 @@ class AlfenDevice:
                     PARAM_DISPLAY_NAME: DISPLAY_NAME_VALUE,
                 },
             )
+            self.logged_in = True
+            self.last_updated = datetime.datetime.now()
+
             _LOGGER.debug("Login response %s", response)
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on LOGIN %s", str(e))
@@ -252,8 +259,12 @@ class AlfenDevice:
     async def logout(self):
         """Logout from the API."""
         self.keep_logout = True
+
         try:
             response = await self._post(cmd=LOGOUT, allowed_login=False)
+            self.logged_in = False
+            self.last_updated = datetime.datetime.now()
+
             _LOGGER.debug("Logout response %s", str(response))
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on LOGOUT %s", str(e))
@@ -263,6 +274,9 @@ class AlfenDevice:
         self, api_param, value, allowed_login=True
     ) -> ClientResponse | None:
         """Update a value on the API."""
+        if self.keep_logout:
+            return None
+
         try:
             async with self._session.post(
                 url=self.__get_url(PROP),
@@ -272,6 +286,7 @@ class AlfenDevice:
                 ssl=self.ssl,
             ) as response:
                 if response.status == 401 and allowed_login:
+                    self.logged_in = False
                     _LOGGER.debug("POST(Update) with login")
                     await self.login()
                     return await self._update_value(api_param, value, False)
