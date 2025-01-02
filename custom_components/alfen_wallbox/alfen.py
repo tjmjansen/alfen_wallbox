@@ -55,7 +55,6 @@ class AlfenDevice:
 
         self.host = host
         self.name = name
-        self._status = None
         self._session = session
         self.username = username
         self.category_options = category_options
@@ -77,6 +76,7 @@ class AlfenDevice:
         self.static_properties = []
         self.get_static_properties = True
         self.logged_in = False
+        self.last_updated = None
 
     async def init(self) -> bool:
         """Initialize the Alfen API."""
@@ -126,11 +126,6 @@ class AlfenDevice:
         return False
 
     @property
-    def status(self) -> str:
-        """Return the status of the device."""
-        return self._status
-
-    @property
     def device_info(self) -> dict:
         """Return a device description for device registry."""
         return {
@@ -146,6 +141,7 @@ class AlfenDevice:
         if self.keep_logout:
             return True
 
+        self.last_updated = datetime.datetime.now()
         dynamic_properties = []
         self.properties = []
         if self.get_static_properties:
@@ -253,6 +249,8 @@ class AlfenDevice:
                 },
             )
             self.logged_in = True
+            self.last_updated = datetime.datetime.now()
+
             _LOGGER.debug("Login response %s", response)
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
             _LOGGER.error("Unexpected error on LOGIN %s", str(e))
@@ -265,6 +263,7 @@ class AlfenDevice:
         try:
             response = await self._post(cmd=LOGOUT, allowed_login=False)
             self.logged_in = False
+            self.last_updated = datetime.datetime.now()
 
             _LOGGER.debug("Logout response %s", str(response))
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001

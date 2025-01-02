@@ -214,4 +214,8 @@ class AlfenBinarySensor(AlfenEntity, BinarySensorEntity):
         for prop in self.coordinator.device.properties:
             if prop[ID] == self.entity_description.api_param:
                 return {"category": prop[CAT]}
+
+        if self.entity_description.key == "https_api_login_status":
+            return {"last_updated": self.coordinator.device.last_updated}
+
         return None
