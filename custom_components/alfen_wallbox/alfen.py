@@ -201,7 +201,8 @@ class AlfenDevice:
         except TimeoutError:
             _LOGGER.warning("Timeout on POST")
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
-            _LOGGER.error("Unexpected error on POST %s", str(e))
+            if not allowed_login:
+                _LOGGER.error("Unexpected error on POST %s", str(e))
 
         return None
 
@@ -232,7 +233,8 @@ class AlfenDevice:
             _LOGGER.warning("Timeout on GET")
             return None
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
-            _LOGGER.error("Unexpected error on GET %s", str(e))
+            if not allowed_login:
+                _LOGGER.error("Unexpected error on GET %s", str(e))
             return None
 
     async def login(self):
@@ -293,7 +295,8 @@ class AlfenDevice:
                 response.raise_for_status()
                 return response
         except Exception as e:  # pylint: disable=broad-except  # noqa: BLE001
-            _LOGGER.error("Unexpected error on UPDATE VALUE %s", str(e))
+            if not allowed_login:
+                _LOGGER.error("Unexpected error on UPDATE VALUE %s", str(e))
             return None
 
     async def _get_value(self, api_param):
