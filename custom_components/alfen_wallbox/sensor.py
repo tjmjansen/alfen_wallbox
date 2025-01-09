@@ -149,7 +149,7 @@ MODE_3_STAT_DICT: Final[dict[int, str]] = {
 ALLOWED_PHASE_DICT: Final[dict[int, str]] = {1: "1 Phase", 3: "3 Phases"}
 
 POWER_STATES_DICT: Final[dict[int, str]] = {
-    0: "Operative",
+    0: "Normal Operation",
     1: "Inactive",
     2: "Connected ISO15118",
     3: "Wait for EV Connect",
