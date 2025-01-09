@@ -52,8 +52,8 @@ PHASE_ROTATION_DICT: Final[dict[str, str]] = {
 AUTH_MODE_DICT: Final[dict[str, int]] = {"Plug and Charge": 0, "RFID": 2}
 
 LOAD_BALANCE_MODE_DICT: Final[dict[str, int]] = {
-    "Modbus TCP/IP": 0,
-    "DSMR4.x / SMR5.0 (P1)": 3,
+    "Disabled": 0,
+    "Enabled": 3,
 }
 
 LOAD_BALANCE_DATA_SOURCE_DICT: Final[dict[str, int]] = {
