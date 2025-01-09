@@ -139,47 +139,42 @@ class AlfenBinarySensor(AlfenEntity, BinarySensorEntity):
         self._attr_unique_id = f"{self.coordinator.device.id}_{description.key}"
         self.entity_description = description
 
+        licenses = self.coordinator.device.get_licenses()
+
         # custom code for license
         if self.entity_description.api_param is None:
             # check if license is available
             if "21A2_0" in self.coordinator.device.properties:
                 if self.coordinator.device.properties["21A2_0"][VALUE] == LICENSE_NONE:
                     return
-            _LOGGER.debug(self.coordinator.device.licenses)
+            _LOGGER.debug(licenses)
             if self.entity_description.key == "license_scn":
-                self._attr_is_on = LICENSE_SCN in self.coordinator.device.licenses
+                self._attr_is_on = LICENSE_SCN in licenses
             if self.entity_description.key == "license_active_loadbalancing":
                 self._attr_is_on = (
-                    LICENSE_SCN in self.coordinator.device.licenses
-                    or LICENSE_LOAD_BALANCING_ACTIVE in self.coordinator.device.licenses
+                    LICENSE_SCN in licenses or LICENSE_LOAD_BALANCING_ACTIVE in licenses
                 )
             if self.entity_description.key == "license_static_loadbalancing":
                 self._attr_is_on = (
-                    LICENSE_SCN in self.coordinator.device.licenses
-                    or LICENSE_LOAD_BALANCING_STATIC in self.coordinator.device.licenses
-                    or LICENSE_LOAD_BALANCING_STATIC in self.coordinator.device.licenses
+                    LICENSE_SCN in licenses
+                    or LICENSE_LOAD_BALANCING_STATIC in licenses
+                    or LICENSE_LOAD_BALANCING_STATIC in licenses
                 )
             if self.entity_description.key == "license_high_power_sockets":
-                self._attr_is_on = (
-                    LICENSE_HIGH_POWER in self.coordinator.device.licenses
-                )
+                self._attr_is_on = LICENSE_HIGH_POWER in licenses
             if self.entity_description.key == "license_rfid_reader":
-                self._attr_is_on = LICENSE_RFID in self.coordinator.device.licenses
+                self._attr_is_on = LICENSE_RFID in licenses
             if self.entity_description.key == "license_personalized_display":
-                self._attr_is_on = (
-                    LICENSE_PERSONALIZED_DISPLAY in self.coordinator.device.licenses
-                )
+                self._attr_is_on = LICENSE_PERSONALIZED_DISPLAY in licenses
             if self.entity_description.key == "license_mobile_3G_4G":
-                self._attr_is_on = LICENSE_MOBILE in self.coordinator.device.licenses
+                self._attr_is_on = LICENSE_MOBILE in licenses
             if self.entity_description.key == "license_giro_e":
-                self._attr_is_on = (
-                    LICENSE_PAYMENT_GIROE in self.coordinator.device.licenses
-                )
+                self._attr_is_on = LICENSE_PAYMENT_GIROE in licenses
 
     #            if self.entity_description.key == "license_qrcode":
-    #                self._attr_is_on = LICENSE_PAYMENT_QRCODE in self.coordinator.device.licenses
+    #                self._attr_is_on = LICENSE_PAYMENT_QRCODE in licenses
     #            if self.entity_description.key == "license_expose_smartmeterdata":
-    #                self._attr_is_on = LICENSE_EXPOSE_SMARTMETERDATA in self.coordinator.device.licenses
+    #                self._attr_is_on = LICENSE_EXPOSE_SMARTMETERDATA in licenses
 
     @property
     def available(self) -> bool:

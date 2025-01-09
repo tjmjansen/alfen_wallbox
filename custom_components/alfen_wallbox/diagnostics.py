@@ -20,8 +20,8 @@ async def async_get_config_entry_diagnostics(
         "info": vars(device.info),
         "keep_logout": device.keep_logout,
         "max_allowed_phases": device.max_allowed_phases,
-        "number_socket": device.number_socket,
-        "licenses": device.licenses,
+        "number_socket": device.get_number_of_sockets(),
+        "licenses": device.get_licenses(),
         "category_options": device.category_options,
         "properties": device.properties,
     }

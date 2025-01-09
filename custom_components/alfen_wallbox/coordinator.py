@@ -84,9 +84,6 @@ class AlfenCoordinator(DataUpdateCoordinator[None]):
             if not await self.device.async_update():
                 raise UpdateFailed("Error updating")
 
-            self.device.get_number_of_socket()
-            self.device.get_licenses()
-
     async def async_connect(self) -> bool:
         """Connect to the API endpoint."""
 
