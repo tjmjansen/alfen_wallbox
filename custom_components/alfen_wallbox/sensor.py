@@ -149,7 +149,7 @@ MODE_3_STAT_DICT: Final[dict[int, str]] = {
 ALLOWED_PHASE_DICT: Final[dict[int, str]] = {1: "1 Phase", 3: "3 Phases"}
 
 POWER_STATES_DICT: Final[dict[int, str]] = {
-    0: "Unknown",
+    0: "Normal Operation",
     1: "Inactive",
     2: "Connected ISO15118",
     3: "Wait for EV Connect",
@@ -1509,7 +1509,7 @@ async def async_setup_entry(
     async_add_entities([AlfenMainSensor(entry, ALFEN_SENSOR_TYPES[0])])
 
     coordinator = entry.runtime_data
-    if coordinator.device.number_socket == 2:
+    if coordinator.device.get_number_of_sockets() == 2:
         sensors = [
             AlfenSensor(entry, description)
             for description in ALFEN_SENSOR_DUAL_SOCKET_TYPES

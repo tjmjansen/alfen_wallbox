@@ -64,10 +64,8 @@ class AlfenDevice:
             self.username = "admin"
         self.password = password
         self.properties = []
-        self.licenses = []
         self._session.verify = False
         self.keep_logout = False
-        self.number_socket = 1
         self.max_allowed_phases = 1
         self.latest_tag = None
         self.transaction_offset = 0
@@ -87,21 +85,24 @@ class AlfenDevice:
 
         return result
 
-    def get_number_of_socket(self):
-        """Get number of socket from the properties."""
+    def get_number_of_sockets(self) -> int | None:
+        """Get number of sockets from the properties."""
+        sockets = 1
         for prop in self.properties:
             if prop[ID] == "205E_0":
-                self.number_socket = int(prop[VALUE])
+                sockets = int(prop[VALUE])
                 break
+        return sockets
 
-    def get_licenses(self):
+    def get_licenses(self) -> list | None:
         """Get licenses from the properties."""
+        licenses = []
         for prop in self.properties:
             if prop[ID] == "21A2_0":
                 for key, value in LICENSES.items():
                     if int(prop[VALUE]) & int(value):
-                        self.licenses.append(key)
-                break
+                        licenses.append(key)
+        return licenses
 
     async def get_info(self) -> bool:
         """Get info from the API."""

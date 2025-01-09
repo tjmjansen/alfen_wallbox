@@ -298,7 +298,7 @@ async def async_setup_entry(
     async_add_entities(selects)
 
     coordinator = entry.runtime_data
-    if coordinator.device.number_socket == 2:
+    if coordinator.device.get_number_of_sockets() == 2:
         numbers = [
             AlfenSelect(coordinator.device, description)
             for description in ALFEN_SELECT_DUAL_SOCKET_TYPES

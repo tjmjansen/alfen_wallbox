@@ -477,7 +477,7 @@ async def async_setup_entry(
     async_add_entities(numbers)
 
     coordinator = entry.runtime_data
-    if coordinator.device.number_socket == 2:
+    if coordinator.device.get_number_of_sockets() == 2:
         numbers = [
             AlfenNumber(entry, description)
             for description in ALFEN_NUMBER_DUAL_SOCKET_TYPES
@@ -553,7 +553,7 @@ class AlfenNumber(AlfenEntity, NumberEntity):
         # override the amps and set them on 32A if there is a license for it
         override_amps_api_key = ["2068_0", "2129_0", "2062_0", "3129_0"]
         # check if device licenses has the high power socket license
-        if LICENSE_HIGH_POWER in self.coordinator.device.licenses:
+        if LICENSE_HIGH_POWER in self.coordinator.device.get_licenses():
             if description.api_param in override_amps_api_key:
                 self._attr_max_value = 40
                 self._attr_native_max_value = 40
