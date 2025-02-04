@@ -13,7 +13,7 @@ set_current_limit:
       example: "number.wallbox_current_limit"
     limit:
       description: New limit.
-      example: 16
+      example: 32
 
 enable_rfid_authorization_mode:
   description: Enables RFID auth mode
