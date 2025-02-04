@@ -17,7 +17,7 @@ If you do not have HACS installed yet visit https://hacs.xyz for installation in
 
 To add the this repository to HACS in your Home Assistant instance, use this My button:
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=alfen_wallbox&owner=leeyuentuen&category=Integration)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?repository=alfen_wallbox&owner=tjmjansen&category=Integration)
 
 After installation, please reboot and add Alfen Wallbox device to your Home Assistant instance, use this My button:
 
