@@ -553,6 +553,7 @@ class AlfenNumber(AlfenEntity, NumberEntity):
         # override the amps and set them on 32A if there is a license for it
         override_amps_api_key = ["2068_0", "2129_0", "2062_0", "3129_0"]
         # check if device licenses has the high power socket license
+        _LOGGER.info("LICENSE: " + self.coordinator.device.get_licenses())
         if LICENSE_HIGH_POWER in self.coordinator.device.get_licenses():
             if description.api_param in override_amps_api_key:
                 self._attr_max_value = 40

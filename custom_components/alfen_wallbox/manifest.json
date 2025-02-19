@@ -9,5 +9,5 @@
     "issue_tracker": "https://github.com/tjmjansen/alfen_wallbox/issues",
     "requirements": [],
     "config_flow": true,
-    "version": "2.9.4"
+    "version": "2.9.5"
 }
